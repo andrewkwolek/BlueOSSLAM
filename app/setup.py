@@ -10,7 +10,6 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     python_requires=">=3.6",
     install_requires=[
-        "commonwealth == 0.1.0",
         "fastapi == 0.105.0",
         "anyio == 3.7.1",
         "fastapi-versioning == 0.9.1",
