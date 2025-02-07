@@ -2,9 +2,9 @@ name: BlueOS SLAM
 
 on:
   # Automatically run when a new commit is added to the repository
-  #push:
+  push:
   # Automatically run when someone makes a Pull Request to the repository
-  #pull_request:
+  pull_request:
   # Run manually
   workflow_dispatch:
   # NOTE: caches may be removed if not run weekly
@@ -15,13 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Deploy BlueOS Extension
-        uses: BlueOS-community/Deploy-BlueOS-Extension@v1
+        uses: BlueOS-community/Deploy-BlueOS-Extension@v1.2.0
         with:
           docker-username: ${{ secrets.DOCKER_USERNAME }}
           docker-password: ${{ secrets.DOCKER_PASSWORD }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          image-name: ${{ vars.IMAGE_NAME || 'quickstart-test' }}
-          author: ${{ vars.MY_NAME }}
-          author-email: ${{ vars.MY_EMAIL }}
-          maintainer: ${{ vars.ORG_NAME }}
-          maintainer-email: ${{ vars.ORG_EMAIL }}
+          github-token: ${{ secrets.TOKEN }}
+          image-name: 'blueos-slam'

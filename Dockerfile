@@ -1,15 +1,17 @@
-FROM python:3.9-slim-bullseye
+FROM python:3.11-slim
 
-COPY static /static
+COPY app /app
+RUN python /app/setup.py install
 
 LABEL version="1.0.1"
 LABEL permissions='{\
   "ExposedPorts": {\
-    "80/tcp": {}\
+    "9050/tcp": {}\
   },\
   "HostConfig": {\
+  "Binds":["/usr/blueos/extensions/blueos-slam:/app/logs"],\
     "PortBindings": {\
-      "80/tcp": [\
+      "9050/tcp": [\
         {\
           "HostPort": ""\
         }\
