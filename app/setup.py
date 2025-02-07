@@ -1,15 +1,11 @@
 import setuptools
 
-with open("README.md", "r", encoding="utf-8") as readme:
-    long_description = readme.read()
-
 setuptools.setup(
     name="slam",
     version="0.0.1",
     author="Andrew Kwolek",
     author_email="andrewkwolek2025@u.northwestern.edu",
     description="A SLAM implementation using Ping360 Sonar.",
-    long_description=long_description,
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
     python_requires=">=3.6",
