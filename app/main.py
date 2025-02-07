@@ -2,7 +2,6 @@
 import asyncio
 import os
 import logging
-import requests
 import sys
 from typing import Any, List
 
