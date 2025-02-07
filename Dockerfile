@@ -13,7 +13,7 @@ LABEL permissions='{\
     "PortBindings": {\
       "9050/tcp": [\
         {\
-          "HostPort": ""\
+          "HostPort": "9050"\
         }\
       ]\
     }\
