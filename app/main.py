@@ -1,15 +1,11 @@
 #! /usr/bin/env python3
 import asyncio
 import os
-import logging
 import sys
-from typing import Any, List
+from loguru import logger
 
-from commonwealth.mavlink_comm.MavlinkComm import MavlinkMessenger
-from commonwealth.utils.apis import GenericErrorHandlingRoute, PrettyJSONResponse
-from commonwealth.utils.decorators import temporary_cache
-from commonwealth.utils.logs import InterceptHandler, init_logger
 from fastapi import Body, FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
@@ -17,16 +13,13 @@ from uvicorn import Config, Server
 
 SERVICE_NAME = "slam"
 
-logging.basicConfig(handlers=[InterceptHandler()], level=0)
-init_logger(SERVICE_NAME)
-
 app = FastAPI(
     title="SLAM",
     description="SLAM service.",
-    default_response_class=PrettyJSONResponse,
     debug=True,
 )
-app.router.route_class = GenericErrorHandlingRoute
+
+logger.info(f"Starting {SERVICE_NAME}")
 
 app = VersionedFastAPI(
     app,
@@ -35,17 +28,12 @@ app = VersionedFastAPI(
     enable_latest=True,
 )
 
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
 
 @app.get("/")
 async def root() -> HTMLResponse:
-    html_content = """
-    <html>
-        <head>
-            <title>SLAM</title>
-        </head>
-    </html>
-    """
-    return HTMLResponse(content=html_content, status_code=200)
+    return HTMLResponse(content="index.html", status_code=200)
 
 if __name__ == "__main__":
     logger.debug("Starting SLAM.")
