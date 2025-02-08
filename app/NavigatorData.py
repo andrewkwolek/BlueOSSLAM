@@ -17,7 +17,7 @@ class NavigatorManager():
         self.rpy = "ATTITUDE"
         self.position_data = []
 
-    def get_gps_data(self):
+    async def get_gps_data(self):
         path = os.path.join(self.url, self.gps)
         try:
             gps_response = requests.get(path, timeout=1)
