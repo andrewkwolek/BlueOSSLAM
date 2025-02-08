@@ -3,7 +3,9 @@ import asyncio
 import os
 import sys
 from loguru import logger
+from typing import Any
 
+from NavigatorData import NavigatorManager
 from fastapi import Body, FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -21,6 +23,12 @@ app = FastAPI(
 
 logger.info(f"Starting {SERVICE_NAME}")
 
+
+@app.get("/gps")
+async def get_gps_data() -> Any:
+    logger.debug("Fetching GPS data.")
+
+
 app = VersionedFastAPI(
     app,
     version="1.0.0",
@@ -36,6 +44,7 @@ async def root() -> HTMLResponse:
     return HTMLResponse(content="index.html", status_code=200)
 
 if __name__ == "__main__":
+    nav_manager = NavigatorManager()
     logger.debug("Starting SLAM.")
     if os.geteuid() != 0:
         logger.error(
