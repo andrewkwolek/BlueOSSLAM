@@ -31,6 +31,7 @@ class NavigatorManager():
 
             self.position_data.append(temp_pos)
             logger.info("GPS response received.")
+            return temp_pos
 
         except requests.RequestException as e:
             logger.error(f"Could not get GPS response {e}.")

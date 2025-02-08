@@ -22,11 +22,13 @@ app = FastAPI(
 )
 
 logger.info(f"Starting {SERVICE_NAME}")
+nav_manager = NavigatorManager()
 
 
 @app.get("/gps")
 async def get_gps_data() -> Any:
     logger.debug("Fetching GPS data.")
+    return nav_manager.get_gps_data()
 
 
 app = VersionedFastAPI(
@@ -44,7 +46,6 @@ async def root() -> HTMLResponse:
     return HTMLResponse(content="index.html", status_code=200)
 
 if __name__ == "__main__":
-    nav_manager = NavigatorManager()
     logger.debug("Starting SLAM.")
     if os.geteuid() != 0:
         logger.error(
