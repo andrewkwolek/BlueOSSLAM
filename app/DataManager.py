@@ -2,15 +2,16 @@ import os
 import requests
 from loguru import logger
 
-from typedefs import AttitudeData, GPSData, IMUData, MavlinkMessage
+from typedefs import AttitudeData, GPSData, IMUData, SLAMData, MavlinkMessage
 
 
 class DataManager():
     def __init__(self) -> None:
         self.url = "http://host.docker.internal:6040/v1/mavlink/vehicles/1/components/1/messages"
         self.data = []
+        self.is_recording = False
 
-    def get_gps_data(self):
+    async def get_gps_data(self):
         path = os.path.join(self.url, MavlinkMessage.GLOBAL_POSITION_INT)
         try:
             gps_response = requests.get(path, timeout=1)
@@ -29,7 +30,7 @@ class DataManager():
         except requests.RequestException as e:
             logger.error(f"Could not get GPS response {e}.")
 
-    def get_imu_data(self):
+    async def get_imu_data(self):
         path = os.path.join(self.url, MavlinkMessage.SCALED_IMU)
         try:
             gps_response = requests.get(path, timeout=1)
@@ -51,7 +52,7 @@ class DataManager():
         except requests.RequestException as e:
             logger.error(f"Could not get IMU response {e}.")
 
-    def get_attitude_data(self):
+    async def get_attitude_data(self):
         path = os.path.join(self.url, MavlinkMessage.ATTITUDE)
         try:
             gps_response = requests.get(path, timeout=1)

@@ -33,3 +33,9 @@ class IMUData(BaseModel):
     y_gyro: float
     z_acc: float
     z_gyro: float
+
+
+class SLAMData(BaseModel):
+    gps_data: GPSData
+    attitude_data: AttitudeData
+    imu_data: IMUData

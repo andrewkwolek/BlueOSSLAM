@@ -27,23 +27,23 @@ data_manager = DataManager()
 
 @app.get("/gps")
 @version(1, 0)
-def get_gps_data() -> Any:
+async def get_gps_data() -> Any:
     logger.debug("Fetching GPS data.")
-    return data_manager.get_gps_data()
+    return await data_manager.get_gps_data()
 
 
 @app.get("/imu")
 @version(1, 0)
-def get_gps_data() -> Any:
+async def get_gps_data() -> Any:
     logger.debug("Fetching IMU data.")
-    return data_manager.get_imu_data()
+    return await data_manager.get_imu_data()
 
 
 @app.get("/attitude")
 @version(1, 0)
-def get_gps_data() -> Any:
+async def get_gps_data() -> Any:
     logger.debug("Fetching attitude data.")
-    return data_manager.get_attitude_data()
+    return await data_manager.get_attitude_data()
 
 
 app = VersionedFastAPI(
