@@ -12,7 +12,7 @@ class PositionData():
 
 class NavigatorManager():
     def __init__(self) -> None:
-        self.url = "http://localhost:6040/mavlink/vehicles/1/components/1/messages"
+        self.url = "http://host.docker.internal/mavlink/vehicles/1/components/1/messages"
         self.gps = "GLOBAL_POSITION_INT"
         self.rpy = "ATTITUDE"
         self.position_data = []
