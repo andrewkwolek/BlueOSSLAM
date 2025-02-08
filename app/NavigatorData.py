@@ -15,7 +15,7 @@ class NavigatorManager():
         self.url = "http://localhost:6040/mavlink/vehicles/1/components/1/messages"
         self.gps = "GLOBAL_POSITION_INT"
         self.rpy = "ATTITUDE"
-        self.position_data = list(PositionData)
+        self.position_data = []
 
     def get_gps_data(self):
         path = os.path.join(self.url, self.gps)
