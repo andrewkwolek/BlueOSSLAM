@@ -1,13 +1,13 @@
 import os
 import requests
 from loguru import logger
+from pydantic import BaseModel
 
 
-class PositionData():
-    def __init__(self, alt, lat, lon):
-        self.altitude = alt
-        self.latitude = lat
-        self.longitude = lon
+class PositionData(BaseModel):
+    altitude: float
+    latitude: float
+    longitude: float
 
 
 class NavigatorManager():
@@ -24,12 +24,10 @@ class NavigatorManager():
             data = gps_response.json()
 
             temp_pos = PositionData(
-                alt=data['message']['alt'],
-                lat=data['message']['lat'],
-                lon=data['message']['lon']
+                altitude=data['message']['alt'],
+                latitude=data['message']['lat'],
+                longitude=data['message']['lon']
             )
-
-            logger.info(f"Altitude: {temp_pos.altitude}")
 
             self.position_data.append(temp_pos)
             logger.info("GPS response received.")
