@@ -26,7 +26,7 @@ nav_manager = NavigatorManager()
 
 
 @app.get("/gps")
-async def get_gps_data() -> Any:
+def get_gps_data() -> Any:
     logger.debug("Fetching GPS data.")
     return nav_manager.get_gps_data()
 
