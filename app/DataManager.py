@@ -10,7 +10,7 @@ class PositionData(BaseModel):
     longitude: float
 
 
-class NavigatorManager():
+class DataManager():
     def __init__(self) -> None:
         self.url = "http://host.docker.internal:6040/v1/mavlink/vehicles/1/components/1/messages"
         self.gps = "GLOBAL_POSITION_INT"

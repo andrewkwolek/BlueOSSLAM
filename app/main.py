@@ -5,7 +5,7 @@ import sys
 from loguru import logger
 from typing import Any, List
 
-from NavigatorData import NavigatorManager, PositionData
+from DataManager import DataManager
 from fastapi import Body, FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -22,14 +22,14 @@ app = FastAPI(
 )
 
 logger.info(f"Starting {SERVICE_NAME}")
-nav_manager = NavigatorManager()
+data_manager = DataManager()
 
 
 @app.get("/gps")
 @version(1, 0)
 def get_gps_data() -> Any:
     logger.debug("Fetching GPS data.")
-    return nav_manager.get_gps_data()
+    return data_manager.get_gps_data()
 
 
 app = VersionedFastAPI(
