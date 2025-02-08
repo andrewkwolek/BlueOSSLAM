@@ -24,9 +24,9 @@ class NavigatorManager():
             data = gps_response.json()
 
             temp_pos = PositionData(
-                altitude=data['message']['alt'],
-                latitude=data['message']['lat'],
-                longitude=data['message']['lon']
+                alt=data['message']['alt'],
+                lat=data['message']['lat'],
+                lon=data['message']['lon']
             )
 
             logger.info(f"Altitude: {temp_pos.altitude}")
