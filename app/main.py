@@ -27,9 +27,9 @@ nav_manager = NavigatorManager()
 
 @app.get("/gps")
 @version(1, 0)
-async def get_gps_data() -> Any:
+def get_gps_data() -> Any:
     logger.debug("Fetching GPS data.")
-    return await nav_manager.get_gps_data()
+    return nav_manager.get_gps_data()
 
 
 app = VersionedFastAPI(

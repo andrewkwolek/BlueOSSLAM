@@ -17,17 +17,19 @@ class NavigatorManager():
         self.rpy = "ATTITUDE"
         self.position_data = []
 
-    async def get_gps_data(self):
+    def get_gps_data(self):
         path = os.path.join(self.url, self.gps)
         try:
             gps_response = requests.get(path, timeout=1)
             data = gps_response.json()
 
-            temp_pos = PositionData()
-            temp_pos.altitude = data['message']['alt']
+            temp_pos = PositionData(
+                altitude=data['message']['alt'],
+                latitude=data['message']['lat'],
+                longitude=data['message']['lon']
+            )
+
             logger.info(f"Altitude: {temp_pos.altitude}")
-            temp_pos.latitude = data['message']['lat']
-            temp_pos.longitude = data['message']['lon']
 
             self.position_data.append(temp_pos)
             logger.info("GPS response received.")
