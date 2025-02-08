@@ -3,7 +3,7 @@ import asyncio
 import os
 import sys
 from loguru import logger
-from typing import Any
+from typing import Any, List
 
 from NavigatorData import NavigatorManager, PositionData
 from fastapi import Body, FastAPI
@@ -25,7 +25,7 @@ logger.info(f"Starting {SERVICE_NAME}")
 nav_manager = NavigatorManager()
 
 
-@app.get("/gps", response_model=PositionData, summary="Position data.")
+@app.get("/gps")
 @version(1, 0)
 def get_gps_data() -> Any:
     logger.debug("Fetching GPS data.")
