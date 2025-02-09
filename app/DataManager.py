@@ -12,23 +12,6 @@ class DataManager():
     def __init__(self) -> None:
         self.url = "http://host.docker.internal:6040/v1/mavlink/vehicles/1/components/1/messages"
         self.data = {}
-        # self.data = pd.DataFrame(
-        #     columns=[
-        #         "timestamp",
-        #         "latitude",
-        #         "longitude",
-        #         "altitude",
-        #         "x_acc",
-        #         "y_acc",
-        #         "z_acc",
-        #         "x_gyro",
-        #         "y_gyro",
-        #         "z_gyro",
-        #         "roll",
-        #         "pitch",
-        #         "yaw"
-        #     ]
-        # )
         self.is_recording = False
         self.recording_task = None
 
@@ -51,7 +34,8 @@ class DataManager():
         self.is_recording = False
         logger.info("Recording stopped.")
 
-        if os.makedirs(DATA_FILEPATH, exist_ok=True):
+        os.makedirs(DATA_FILEPATH, exist_ok=True)
+        if os.path.exists(DATA_FILEPATH):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"slam_data_{timestamp}_%03d.csv"
             filepath = os.path.join(DATA_FILEPATH, filename)
