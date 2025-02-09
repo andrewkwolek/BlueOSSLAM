@@ -18,6 +18,6 @@ setuptools.setup(
         "starlette == 0.27.0",
         "uvicorn == 0.13.4",
         "requests",
-        "pandas",
+        "pandas==2.1.0",
     ],
 )
