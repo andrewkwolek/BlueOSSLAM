@@ -1,6 +1,5 @@
-import asyncio
+import csv
 import os
-import pandas as pd
 import requests
 from datetime import datetime
 from loguru import logger
@@ -12,23 +11,24 @@ from settings import DATA_FILEPATH
 class DataManager():
     def __init__(self) -> None:
         self.url = "http://host.docker.internal:6040/v1/mavlink/vehicles/1/components/1/messages"
-        self.data = pd.DataFrame(
-            columns=[
-                "timestamp",
-                "latitude",
-                "longitude",
-                "altitude",
-                "x_acc",
-                "y_acc",
-                "z_acc",
-                "x_gyro",
-                "y_gyro",
-                "z_gyro",
-                "roll",
-                "pitch",
-                "yaw"
-            ]
-        )
+        self.data = {}
+        # self.data = pd.DataFrame(
+        #     columns=[
+        #         "timestamp",
+        #         "latitude",
+        #         "longitude",
+        #         "altitude",
+        #         "x_acc",
+        #         "y_acc",
+        #         "z_acc",
+        #         "x_gyro",
+        #         "y_gyro",
+        #         "z_gyro",
+        #         "roll",
+        #         "pitch",
+        #         "yaw"
+        #     ]
+        # )
         self.is_recording = False
         self.recording_task = None
 
@@ -37,7 +37,7 @@ class DataManager():
             logger.warning("Already recording!")
             return
 
-        self.data = self.data.iloc[0:0]
+        self.data.clear()
         self.is_recording = True
         logger.info("Recording started.")
 
@@ -56,7 +56,15 @@ class DataManager():
             filename = f"slam_data_{timestamp}_%03d.csv"
             filepath = os.path.join(DATA_FILEPATH, filename)
 
-            self.data.to_csv(filepath, index=False)
+            with open(filepath, 'w') as file:
+                writer = csv.DictWriter(
+                    file, fieldnames=self.data.keys(), delimiter=' ')
+
+                writer.writeheader()
+
+                rows = zip(*self.data.values())
+                writer.writerows(rows)
+
             logger.info(f"Data saved to {filename}")
         else:
             logger.warning(f"File path {DATA_FILEPATH} does not exist.")
@@ -144,18 +152,22 @@ class DataManager():
                 imu_data = await self.get_imu_data()
                 attitude_data = await self.get_attitude_data()
 
-                self.data.loc[-1] = [datetime.now(),
-                                     gps_data.latitude,
-                                     gps_data.longitude,
-                                     gps_data.altitude,
-                                     imu_data.x_acc,
-                                     imu_data.y_acc,
-                                     imu_data.z_acc,
-                                     imu_data.x_gyro,
-                                     imu_data.y_gyro,
-                                     imu_data.z_gyro,
-                                     attitude_data.roll,
-                                     attitude_data.pitch,
-                                     attitude_data.yaw]
+                if not self.data:
+                    self.data['timestamp'] = [datetime.now()]
+                    for key, value in gps_data.dict():
+                        self.data[key] = [value]
+                    for key, value in imu_data.dict():
+                        self.data[key] = [value]
+                    for key, value in attitude_data.dict():
+                        self.data[key] = [value]
+                else:
+                    self.data['timestamp'].append(datetime.now())
+                    for key, value in gps_data.dict():
+                        self.data[key].append(value)
+                    for key, value in imu_data.dict():
+                        self.data[key].append(value)
+                    for key, value in attitude_data.dict():
+                        self.data[key].append(value)
+
             except Exception as e:
                 logger.error(f"Could not get attitude response {e}.")
