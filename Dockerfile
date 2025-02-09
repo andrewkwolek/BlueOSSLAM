@@ -1,8 +1,7 @@
 FROM python:3.11-slim
 
 COPY app /app
-RUN python /app/setup.py install
-RUN pip install --no-cache-dir pandas
+RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
 
 RUN mkdir -p /app/slam_data
 
