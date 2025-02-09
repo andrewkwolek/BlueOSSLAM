@@ -67,7 +67,7 @@ class DataManager():
                 longitude=msg['lon']
             )
 
-            logger.info("GPS response received.")
+            logger.debug("GPS response received.")
             return temp_pos
 
         except requests.RequestException as e:
@@ -89,7 +89,7 @@ class DataManager():
                 z_gyro=msg['zgyro']
             )
 
-            logger.info("IMU response received.")
+            logger.debug("IMU response received.")
             return temp_pos
 
         except requests.RequestException as e:
@@ -111,7 +111,7 @@ class DataManager():
                 yaw_speed=msg['yawspeed']
             )
 
-            logger.info("Attitude response received.")
+            logger.debug("Attitude response received.")
             return temp_pos
 
         except requests.RequestException as e:
@@ -134,7 +134,6 @@ class DataManager():
         logger.info("Recording data is running!")
         try:
             while self.is_recording:
-                logger.info("Recording loop!")
                 gps_data = await self.get_gps_data()
                 imu_data = await self.get_imu_data()
                 attitude_data = await self.get_attitude_data()
