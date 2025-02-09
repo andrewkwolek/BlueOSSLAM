@@ -2,8 +2,9 @@ FROM python:3.11-slim
 
 COPY app /app
 RUN python /app/setup.py install
+RUN pip install --no-cache-dir pandas
 
-RUN mkdir -p /app/videorecordings
+RUN mkdir -p /app/slam_data
 
 EXPOSE 9050
 
