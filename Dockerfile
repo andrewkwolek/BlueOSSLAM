@@ -5,7 +5,8 @@ RUN python /app/setup.py install
 
 RUN mkdir -p /app/videorecordings
 
-RUN pip3 install pandas
+RUN pip install --upgrade pip
+RUN pip install pandas
 
 EXPOSE 9050
 
