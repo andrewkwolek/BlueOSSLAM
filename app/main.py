@@ -81,9 +81,7 @@ async def start_services():
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)
     server = Server(config)
 
-    # Run the data recording function in a separate thread
-    with ThreadPoolExecutor() as executor:
-        executor.submit(asyncio.run(data_manager.record_data()))
+    asyncio.create_task(data_manager.record_data())
 
     # Run the FastAPI server
     await server.serve()
