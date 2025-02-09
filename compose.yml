@@ -2,7 +2,7 @@ services:
   blueos-slam:
     image: andrewkwolek3/blueos-blueos-slam:main
     container_name: blueos-slam
-    network_mode: host
+    # network_mode: host
     ports:
       - "9050:9050"
     restart: unless-stopped
