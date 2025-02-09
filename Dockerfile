@@ -1,12 +1,10 @@
 FROM python:3.11-slim
+RUN pip install pandas
 
 COPY app /app
 RUN python /app/setup.py install
 
 RUN mkdir -p /app/videorecordings
-
-# RUN pip install --upgrade pip
-# RUN pip install pandas
 
 EXPOSE 9050
 
