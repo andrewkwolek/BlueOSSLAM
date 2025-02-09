@@ -6,12 +6,12 @@ from datetime import datetime
 from loguru import logger
 
 from typedefs import AttitudeData, GPSData, IMUData, SLAMData, MavlinkMessage
-from settings import DATA_FILEPATH
+from settings import DATA_FILEPATH, VEHICLE_IP
 
 
 class DataManager():
     def __init__(self) -> None:
-        self.url = "http://host.docker.internal:6040/v1/mavlink/vehicles/1/components/1/messages"
+        self.url = f"http://{VEHICLE_IP}:6040/v1/mavlink/vehicles/1/components/1/messages"
         self.data = {}
         self.is_recording = False
         self.recording_task = None
