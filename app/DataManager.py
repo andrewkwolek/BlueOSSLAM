@@ -76,8 +76,8 @@ class DataManager():
     async def get_imu_data(self):
         path = os.path.join(self.url, MavlinkMessage.SCALED_IMU)
         try:
-            gps_response = requests.get(path, timeout=1)
-            msg = gps_response.json()['message']
+            imu_response = requests.get(path, timeout=1)
+            msg = imu_response.json()['message']
 
             temp_pos = IMUData(
                 timestamp=msg['time_boot_ms'],
@@ -98,8 +98,8 @@ class DataManager():
     async def get_attitude_data(self):
         path = os.path.join(self.url, MavlinkMessage.ATTITUDE)
         try:
-            gps_response = requests.get(path, timeout=1)
-            msg = gps_response.json()['message']
+            att_response = requests.get(path, timeout=1)
+            msg = att_response.json()['message']
 
             temp_pos = AttitudeData(
                 timestamp=msg['time_boot_ms'],
@@ -132,29 +132,30 @@ class DataManager():
 
     async def record_data(self):
         logger.info("Recording data is running!")
-        while self.is_recording:
-            logger.info("Recording loop!")
-            try:
+        try:
+            while self.is_recording:
+                logger.info("Recording loop!")
                 gps_data = await self.get_gps_data()
                 imu_data = await self.get_imu_data()
                 attitude_data = await self.get_attitude_data()
 
                 if not self.data:
                     self.data['timestamp'] = [datetime.now()]
-                    for key, value in gps_data.dict():
+                    for key, value in gps_data.dict().items():
                         self.data[key] = [value]
-                    for key, value in imu_data.dict():
+                    for key, value in imu_data.dict().items():
                         self.data[key] = [value]
-                    for key, value in attitude_data.dict():
+                    for key, value in attitude_data.dict().items():
                         self.data[key] = [value]
                 else:
                     self.data['timestamp'].append(datetime.now())
-                    for key, value in gps_data.dict():
+                    for key, value in gps_data.dict().items():
                         self.data[key].append(value)
-                    for key, value in imu_data.dict():
+                    for key, value in imu_data.dict().items():
                         self.data[key].append(value)
-                    for key, value in attitude_data.dict():
+                    for key, value in attitude_data.dict().items():
                         self.data[key].append(value)
-
-            except Exception as e:
-                logger.error(f"Could not get attitude response {e}.")
+        except Exception as e:
+            logger.error(f"Could not get attitude response {e}.")
+        finally:
+            logger.info("Coroutine completed.")
