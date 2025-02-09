@@ -51,6 +51,7 @@ async def get_gps_data() -> Any:
 @version(1, 0)
 async def start() -> Any:
     await data_manager.start_recording()
+    asyncio.create_task(data_manager.record_data())
     return {'message': 'Recording started.'}
 
 
@@ -80,8 +81,6 @@ async def start_services():
     # Running uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)
     server = Server(config)
-
-    asyncio.create_task(data_manager.record_data())
 
     # Run the FastAPI server
     await server.serve()
