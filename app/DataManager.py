@@ -48,7 +48,8 @@ class DataManager():
 
                 writer.writeheader()
 
-                rows = zip(*self.data.values())
+                rows = [dict(zip(self.data.keys(), row))
+                        for row in zip(*self.data.values())]
                 writer.writerows(rows)
 
             logger.info(f"Data saved to {filename}")
