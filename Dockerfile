@@ -3,6 +3,10 @@ FROM python:3.11-slim
 COPY app /app
 RUN python /app/setup.py install
 
+RUN mkdir -p /app/videorecordings
+
+EXPOSE 9050
+
 LABEL version="1.0.1"
 LABEL permissions='{\
   "ExposedPorts": {\

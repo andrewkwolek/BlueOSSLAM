@@ -3,15 +3,16 @@ import asyncio
 import os
 import sys
 from loguru import logger
-from typing import Any, List
+from typing import Any
 
 from DataManager import DataManager
-from fastapi import Body, FastAPI
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
 from uvicorn import Config, Server
+from concurrent.futures import ThreadPoolExecutor
 
 SERVICE_NAME = "slam"
 
@@ -46,6 +47,20 @@ async def get_gps_data() -> Any:
     return await data_manager.get_attitude_data()
 
 
+@app.post("/start_recording")
+@version(1, 0)
+async def start() -> Any:
+    await data_manager.start_recording()
+    return {'message': 'Recording started.'}
+
+
+@app.post("/stop_recording")
+@version(1, 0)
+async def stop() -> Any:
+    await data_manager.stop_recording()
+    return {'message': 'Recording stopped.'}
+
+
 app = VersionedFastAPI(
     app,
     version="1.0.0",
@@ -60,6 +75,19 @@ app.mount("/", StaticFiles(directory="static", html=True), name="static")
 async def root() -> HTMLResponse:
     return HTMLResponse(content="index.html", status_code=200)
 
+
+async def start_services():
+    # Running uvicorn server in the background
+    config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)
+    server = Server(config)
+
+    # Run the data recording function in a separate thread
+    with ThreadPoolExecutor() as executor:
+        executor.submit(asyncio.run(data_manager.record_data()))
+
+    # Run the FastAPI server
+    await server.serve()
+
 if __name__ == "__main__":
     logger.debug("Starting SLAM.")
     if os.geteuid() != 0:
@@ -68,11 +96,4 @@ if __name__ == "__main__":
         )
         sys.exit(1)
 
-    loop = asyncio.new_event_loop()
-
-    # Running uvicorn with log disabled so loguru can handle it
-    config = Config(app=app, loop=loop, host="0.0.0.0",
-                    port=9050, log_config=None)
-    server = Server(config)
-
-    loop.run_until_complete(server.serve())
+    asyncio.run(start_services())

@@ -1,15 +1,65 @@
+import asyncio
 import os
+import pandas as pd
 import requests
+from datetime import datetime
 from loguru import logger
 
 from typedefs import AttitudeData, GPSData, IMUData, SLAMData, MavlinkMessage
+from settings import DATA_FILEPATH
 
 
 class DataManager():
     def __init__(self) -> None:
         self.url = "http://host.docker.internal:6040/v1/mavlink/vehicles/1/components/1/messages"
-        self.data = []
+        self.data = pd.DataFrame(
+            columns=[
+                "timestamp",
+                "latitude",
+                "longitude",
+                "altitude",
+                "x_acc",
+                "y_acc",
+                "z_acc",
+                "x_gyro",
+                "y_gyro",
+                "z_gyro",
+                "roll",
+                "pitch",
+                "yaw"
+            ]
+        )
         self.is_recording = False
+        self.recording_task = None
+
+    async def start_recording(self):
+        if self.is_recording:
+            logger.warning("Already recording!")
+            return
+
+        self.data = self.data.iloc[0:0]
+        self.is_recording = True
+        logger.info("Recording started.")
+
+        # self.recording_task = asyncio.create_task()
+
+    async def stop_recording(self):
+        if not self.is_recording:
+            logger.warning("No recording in progress!")
+            return
+
+        self.is_recording = False
+        logger.info("Recording stopped.")
+
+        if os.makedirs(DATA_FILEPATH, exist_ok=True):
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"slam_data_{timestamp}_%03d.csv"
+            filepath = os.path.join(DATA_FILEPATH, filename)
+
+            self.data.to_csv(filepath, index=False)
+            logger.info(f"Data saved to {filename}")
+        else:
+            logger.warning(f"File path {DATA_FILEPATH} does not exist.")
 
     async def get_gps_data(self):
         path = os.path.join(self.url, MavlinkMessage.GLOBAL_POSITION_INT)
@@ -73,3 +123,39 @@ class DataManager():
 
         except requests.RequestException as e:
             logger.error(f"Could not get attitude response {e}.")
+
+    async def get_all_data(self):
+        gps = await self.get_gps_data()
+        imu = await self.get_imu_data()
+        att = await self.get_attitude_data()
+
+        slam_data = SLAMData(
+            gps_data=gps,
+            imu_data=imu,
+            attitude_data=att
+        )
+
+        return slam_data
+
+    async def record_data(self):
+        while self.is_recording:
+            try:
+                gps_data = await self.get_gps_data()
+                imu_data = await self.get_imu_data()
+                attitude_data = await self.get_attitude_data()
+
+                self.data.loc[-1] = [datetime.now(),
+                                     gps_data.latitude,
+                                     gps_data.longitude,
+                                     gps_data.altitude,
+                                     imu_data.x_acc,
+                                     imu_data.y_acc,
+                                     imu_data.z_acc,
+                                     imu_data.x_gyro,
+                                     imu_data.y_gyro,
+                                     imu_data.z_gyro,
+                                     attitude_data.roll,
+                                     attitude_data.pitch,
+                                     attitude_data.yaw]
+            except Exception as e:
+                logger.error(f"Could not get attitude response {e}.")
