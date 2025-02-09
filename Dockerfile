@@ -5,6 +5,8 @@ RUN python /app/setup.py install
 
 RUN mkdir -p /app/videorecordings
 
+RUN pip install pandas
+
 EXPOSE 9050
 
 LABEL version="1.0.1"
