@@ -41,6 +41,7 @@ class DataManager():
             filepath = os.path.join(DATA_FILEPATH, filename)
 
             with open(filepath, 'w') as file:
+                logger.info("Writing to csv.")
                 writer = csv.DictWriter(
                     file, fieldnames=self.data.keys(), delimiter=' ')
 
@@ -131,6 +132,7 @@ class DataManager():
 
     async def record_data(self):
         while self.is_recording:
+            logger.info("Recording loop!")
             try:
                 gps_data = await self.get_gps_data()
                 imu_data = await self.get_imu_data()
