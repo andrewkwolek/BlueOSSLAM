@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import os
 import requests
@@ -67,7 +68,6 @@ class DataManager():
                 longitude=msg['lon']
             )
 
-            logger.debug("GPS response received.")
             return temp_pos
 
         except requests.RequestException as e:
@@ -89,7 +89,6 @@ class DataManager():
                 z_gyro=msg['zgyro']
             )
 
-            logger.debug("IMU response received.")
             return temp_pos
 
         except requests.RequestException as e:
@@ -111,7 +110,6 @@ class DataManager():
                 yaw_speed=msg['yawspeed']
             )
 
-            logger.debug("Attitude response received.")
             return temp_pos
 
         except requests.RequestException as e:
@@ -154,6 +152,8 @@ class DataManager():
                         self.data[key].append(value)
                     for key, value in attitude_data.dict().items():
                         self.data[key].append(value)
+
+                await asyncio.sleep(0)
         except Exception as e:
             logger.error(f"Could not get attitude response {e}.")
         finally:
