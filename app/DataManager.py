@@ -131,6 +131,7 @@ class DataManager():
         return slam_data
 
     async def record_data(self):
+        logger.info("Recording data is running!")
         while self.is_recording:
             logger.info("Recording loop!")
             try:
