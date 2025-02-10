@@ -46,8 +46,6 @@ class SonarData(BaseModel):
     angle: int
     transmit_duration: int
     sample_period: int
-    start_angle: int
-    stop_angle: int
     number_of_samples: int
     data_length: int
     data: list

@@ -29,8 +29,6 @@ class PingManager():
             angle=data['angle'],
             transmit_duration=data['transmit_duration'],
             sample_period=data['sample_period'],
-            start_angle=data['start_angle'],
-            stop_angle=data['stop_angle'],
             number_of_samples=data['number_of_samples'],
             data_length=data['data_length'],
             data=data['data']
