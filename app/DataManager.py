@@ -75,13 +75,13 @@ class DataManager():
             logger.error(f"Could not get GPS response {e}.")
 
     async def get_imu_data(self):
-        path = os.path.join(self.url, MavlinkMessage.SCALED_IMU)
+        path = os.path.join(self.url, MavlinkMessage.RAW_IMU)
         try:
             imu_response = requests.get(path, timeout=1)
             msg = imu_response.json()['message']
 
             temp_pos = IMUData(
-                timestamp=msg['time_boot_ms'],
+                timestamp=msg['time_usec'],
                 x_acc=msg['xacc'],
                 x_gyro=msg['xgyro'],
                 y_acc=msg['yacc'],

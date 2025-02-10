@@ -6,6 +6,7 @@ class MavlinkMessage(str, Enum):
     ATTITUDE = "ATTITUDE"
     GLOBAL_POSITION_INT = "GLOBAL_POSITION_INT"
     SCALED_IMU = "SCALED_IMU2"  # Actual ROV may differ
+    RAW_IMU = "RAW_IMU"
 
 
 class GPSData(BaseModel):
