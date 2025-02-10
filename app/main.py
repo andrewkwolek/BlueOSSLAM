@@ -26,7 +26,7 @@ app = FastAPI(
 
 logger.info(f"Starting {SERVICE_NAME}")
 data_manager = DataManager()
-ping_manager = PingManager(device=PING_DEVICE, baudrate=115200, udp=UDP_PORT)
+ping_manager = PingManager(baudrate=115200, udp=UDP_PORT)
 
 
 @app.get("/gps")

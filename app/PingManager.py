@@ -8,7 +8,7 @@ from typedefs import SonarData
 
 
 class PingManager():
-    def __init__(self, device, baudrate, udp):
+    def __init__(self, baudrate, device=None, udp=None):
         self.gathering = False
         self.device = device
         self.baudrate = baudrate
