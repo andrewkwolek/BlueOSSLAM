@@ -14,6 +14,8 @@ from loguru import logger
 from PingManager import PingManager
 from uvicorn import Config, Server
 
+from settings import PING_DEVICE, UDP_PORT
+
 SERVICE_NAME = "slam"
 
 app = FastAPI(
@@ -24,7 +26,7 @@ app = FastAPI(
 
 logger.info(f"Starting {SERVICE_NAME}")
 data_manager = DataManager()
-ping_manager = PingManager()
+ping_manager = PingManager(device=PING_DEVICE, baudrate=115200, udp=UDP_PORT)
 
 
 @app.get("/gps")
