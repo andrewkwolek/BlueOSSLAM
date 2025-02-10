@@ -31,7 +31,7 @@ class PingManager():
             transmit_duration=data['transmit_duration'],
             sample_period=data['sample_period'],
             number_of_samples=data['number_of_samples'],
-            data=data['data']
+            data=list(data['data'])
         )
 
         return sonar_data
