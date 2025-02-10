@@ -47,5 +47,4 @@ class SonarData(BaseModel):
     transmit_duration: int
     sample_period: int
     number_of_samples: int
-    data_length: int
     data: list
