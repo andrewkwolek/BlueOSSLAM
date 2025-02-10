@@ -7,17 +7,18 @@ class MavlinkMessage(str, Enum):
     GLOBAL_POSITION_INT = "GLOBAL_POSITION_INT"
     SCALED_IMU = "SCALED_IMU2"  # Actual ROV may differ
     RAW_IMU = "RAW_IMU"
+    SCALED_PRESSURE = "SCALED_PRESSURE"
 
 
 class GPSData(BaseModel):
-    timestamp: float
+    timestamp: int
     altitude: float
     latitude: float
     longitude: float
 
 
 class AttitudeData(BaseModel):
-    timestamp: float
+    timestamp: int
     roll: float  # Rotation about X (Straight)
     pitch: float  # Rotation about Y (Right)
     yaw: float  # Rotation about Z (Down)
@@ -27,13 +28,19 @@ class AttitudeData(BaseModel):
 
 
 class IMUData(BaseModel):
-    timestamp: float
+    timestamp: int
     x_acc: float
     x_gyro: float
     y_acc: float
     y_gyro: float
     z_acc: float
     z_gyro: float
+
+
+class PressureData(BaseModel):
+    timestamp: int
+    press_abs: float
+    press_diff: float
 
 
 class SLAMData(BaseModel):

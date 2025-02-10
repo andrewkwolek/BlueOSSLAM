@@ -5,7 +5,7 @@ import requests
 from datetime import datetime
 from loguru import logger
 
-from typedefs import AttitudeData, GPSData, IMUData, SLAMData, MavlinkMessage
+from typedefs import AttitudeData, GPSData, IMUData, PressureData, SLAMData, MavlinkMessage
 from settings import DATA_FILEPATH, VEHICLE_IP
 
 
@@ -112,6 +112,23 @@ class DataManager():
             )
 
             return temp_pos
+
+        except requests.RequestException as e:
+            logger.error(f"Could not get attitude response {e}.")
+
+    async def get_pressure_data(self):
+        path = os.path.join(self.url, MavlinkMessage.SCALED_PRESSURE)
+        try:
+            att_response = requests.get(path, timeout=1)
+            msg = att_response.json()['message']
+
+            temp_press = PressureData(
+                timestamp=msg['time_boot_ms'],
+                press_abs=msg['press_abs'],
+                press_diff=msg['press_diff']
+            )
+
+            return temp_press
 
         except requests.RequestException as e:
             logger.error(f"Could not get attitude response {e}.")
