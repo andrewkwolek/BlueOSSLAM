@@ -11,8 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
+from PingManager import PingManager
 from uvicorn import Config, Server
-from concurrent.futures import ThreadPoolExecutor
 
 SERVICE_NAME = "slam"
 
@@ -24,6 +24,7 @@ app = FastAPI(
 
 logger.info(f"Starting {SERVICE_NAME}")
 data_manager = DataManager()
+ping_manager = PingManager()
 
 
 @app.get("/gps")
@@ -45,6 +46,13 @@ async def get_gps_data() -> Any:
 async def get_gps_data() -> Any:
     logger.debug("Fetching attitude data.")
     return await data_manager.get_attitude_data()
+
+
+@app.get("/ping")
+@version(1, 0)
+async def get_ping_data() -> Any:
+    logger.debug("Fetching ping data.")
+    return await ping_manager.get_ping_data()
 
 
 @app.post("/start_recording")
