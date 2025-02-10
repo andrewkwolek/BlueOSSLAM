@@ -25,6 +25,7 @@ class PingManager():
 
     async def get_ping_data(self):
         data = self.my_ping.get_device_data()
+        logger.info(f"Keys: {data.keys()}")
         sonar_data = SonarData(
             angle=data['angle'],
             transmit_duration=data['transmit_duration'],
