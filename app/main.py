@@ -107,6 +107,7 @@ async def listen_udp():
     # The event loop will now handle the datagrams asynchronously
     # listen_udp will continue running and processing incoming data.
     await asyncio.Future()
+    logger.info(f"Exiting")
 
 
 async def start_services():
