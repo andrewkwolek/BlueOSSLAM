@@ -11,8 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
-from MavlinkServer import UDPMavlinkServer
-from MavlinkUDP import UDPMavlinkProtocol
+from MavlinkUDP import MavlinkUDPProtocol
 from PingManager import PingManager
 from uvicorn import Config, Server
 
@@ -89,19 +88,29 @@ async def root() -> HTMLResponse:
     return HTMLResponse(content="index.html", status_code=200)
 
 
+async def listen_udp():
+    # Define the UDP endpoint (the existing UDP server is running on 0.0.0.0:14450)
+    listen_address = ('0.0.0.0', 14450)
+
+    # Create the event loop and set up the protocol
+    loop = asyncio.get_running_loop()
+
+    # Create the UDP endpoint to listen to incoming data
+    listen = await loop.create_datagram_endpoint(
+        MavlinkUDPProtocol, local_addr=listen_address
+    )
+
+    logger.info(f"Listening for UDP packets on {listen_address}")
+
+
 async def start_services():
-    udp_server = UDPMavlinkServer(host="0.0.0.0", port=14450)
-    await udp_server.start()
+    await listen_udp()
 
     # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)
     server = Server(config)
 
-    # Run both services concurrently
-    await asyncio.gather(
-        udp_server.run(),
-        server.serve(),
-    )
+    await server.serve()
 
 if __name__ == "__main__":
     logger.debug("Starting SLAM.")

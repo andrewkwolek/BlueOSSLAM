@@ -1,16 +1,24 @@
-class UDPMavlinkProtocol:
-    def __init__(self, sock):
-        self.sock = sock
+from asyncio import DatagramProtocol
+from loguru import logger
+
+
+class MavlinkUDPProtocol(DatagramProtocol):
+    def __init__(self):
+        self.transport = None
 
     def connection_made(self, transport):
-        print("UDP connection established")
+        self.transport = transport
+        logger.info(f"Connected to UDP server")
 
     def datagram_received(self, data, addr):
-        # Print received MAVLink data for now (can be processed further)
-        print(f"Received data from {addr}: {data}")
+        # Handle incoming data (MAVLink messages or whatever your protocol is)
+        logger.debug(f"Received data: {data} from {addr}")
+        # You can now process this data, e.g., parse MAVLink messages
+        # Example: Print data
+        print(f"Received {data} from {addr}")
 
     def error_received(self, exc):
-        print(f"Error received: {exc}")
+        logger.error(f"Error received: {exc}")
 
     def connection_lost(self, exc):
-        print("UDP connection lost")
+        logger.info("Connection lost")
