@@ -90,7 +90,7 @@ async def root() -> HTMLResponse:
 
 
 async def start_services():
-    udp_server = UDPMavlinkServer(host=DOCKER_HOST, port=14450)
+    udp_server = UDPMavlinkServer(host="0.0.0.0", port=14450)
     await udp_server.start()
 
     # Running uvicorn server in the background
