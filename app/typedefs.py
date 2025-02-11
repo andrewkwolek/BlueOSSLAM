@@ -1,6 +1,8 @@
 from enum import Enum
 from pydantic import BaseModel
 
+from typing import Any
+
 
 class MavlinkMessage(str, Enum):
     ATTITUDE = "ATTITUDE"
@@ -43,10 +45,12 @@ class PressureData(BaseModel):
     press_diff: float
 
 
-class SLAMData(BaseModel):
+class LocalizationData(BaseModel):
+    timestamp: Any
     gps_data: GPSData
     attitude_data: AttitudeData
     imu_data: IMUData
+    pressure_data: PressureData
 
 
 class SonarData(BaseModel):

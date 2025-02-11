@@ -11,10 +11,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
+from mavlink_com.MavlinkServer import UDPMavlinkServer
+from mavlink_com.MavlinkUDP import UDPMavlinkProtocol
 from PingManager import PingManager
 from uvicorn import Config, Server
 
-from settings import PING_DEVICE, UDP_PORT
+from settings import PING_DEVICE, UDP_PORT, DOCKER_HOST
 
 SERVICE_NAME = "slam"
 
@@ -88,6 +90,9 @@ async def root() -> HTMLResponse:
 
 
 async def start_services():
+    udp_server = UDPMavlinkServer(host=DOCKER_HOST, port=14450)
+    await udp_server.start()
+
     # Running uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)
     server = Server(config)

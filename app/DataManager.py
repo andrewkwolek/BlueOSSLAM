@@ -5,14 +5,14 @@ import requests
 from datetime import datetime
 from loguru import logger
 
-from typedefs import AttitudeData, GPSData, IMUData, PressureData, SLAMData, MavlinkMessage
+from typedefs import AttitudeData, GPSData, IMUData, PressureData, LocalizationData, MavlinkMessage
 from settings import DATA_FILEPATH, VEHICLE_IP
 
 
-class DataManager():
+class DataManager:
     def __init__(self) -> None:
         self.url = f"http://{VEHICLE_IP}:6040/v1/mavlink/vehicles/1/components/1/messages"
-        self.data = {}
+        self.recorded_data = {}
         self.is_recording = False
         self.recording_task = None
 
@@ -24,8 +24,6 @@ class DataManager():
         self.data.clear()
         self.is_recording = True
         logger.info("Recording started.")
-
-        # self.recording_task = asyncio.create_task()
 
     async def stop_recording(self):
         if not self.is_recording:
@@ -133,18 +131,21 @@ class DataManager():
         except requests.RequestException as e:
             logger.error(f"Could not get attitude response {e}.")
 
-    async def get_all_data(self):
+    async def get_localization_data(self):
         gps = await self.get_gps_data()
         imu = await self.get_imu_data()
         att = await self.get_attitude_data()
+        press = await self.get_pressure_data()
 
-        slam_data = SLAMData(
+        loc_data = LocalizationData(
+            timestamp=datetime.now(),
             gps_data=gps,
             imu_data=imu,
-            attitude_data=att
+            attitude_data=att,
+            pressure_data=press
         )
 
-        return slam_data
+        return loc_data
 
     async def record_data(self):
         logger.info("Recording data is running!")
@@ -153,23 +154,28 @@ class DataManager():
                 gps_data = await self.get_gps_data()
                 imu_data = await self.get_imu_data()
                 attitude_data = await self.get_attitude_data()
+                pressure_data = await self.get_pressure_data()
 
-                if not self.data:
-                    self.data['timestamp'] = [datetime.now()]
+                if not self.recorded_data:
+                    self.recorded_data['timestamp'] = [datetime.now()]
                     for key, value in gps_data.dict().items():
-                        self.data[key] = [value]
+                        self.recorded_data[key] = [value]
                     for key, value in imu_data.dict().items():
-                        self.data[key] = [value]
+                        self.recorded_data[key] = [value]
                     for key, value in attitude_data.dict().items():
-                        self.data[key] = [value]
+                        self.recorded_data[key] = [value]
+                    for key, value in pressure_data.dict().items():
+                        self.recorded_data[key] = [value]
                 else:
-                    self.data['timestamp'].append(datetime.now())
+                    self.recorded_data['timestamp'].append(datetime.now())
                     for key, value in gps_data.dict().items():
-                        self.data[key].append(value)
+                        self.recorded_data[key].append(value)
                     for key, value in imu_data.dict().items():
-                        self.data[key].append(value)
+                        self.recorded_data[key].append(value)
                     for key, value in attitude_data.dict().items():
-                        self.data[key].append(value)
+                        self.recorded_data[key].append(value)
+                    for key, value in pressure_data.dict().items():
+                        self.recorded_data[key].append(value)
 
                 await asyncio.sleep(0)
         except Exception as e:
