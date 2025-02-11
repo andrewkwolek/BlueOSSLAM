@@ -89,22 +89,27 @@ async def root() -> HTMLResponse:
 
 
 async def listen_udp():
-    # Define the UDP endpoint (the existing UDP server is running on 0.0.0.0:14450)
+    # Listening for UDP packets on this address and port
     listen_address = ('0.0.0.0', 14450)
 
-    # Create the event loop and set up the protocol
     loop = asyncio.get_running_loop()
 
-    # Create the UDP endpoint to listen to incoming data
+    # Set up the UDP endpoint to listen for incoming datagrams
     listen = await loop.create_datagram_endpoint(
-        MavlinkUDPProtocol, local_addr=listen_address
+        # Use lambda to pass data_manager to protocol
+        lambda: MavlinkUDPProtocol(data_manager),
+        # Listen on all available network interfaces (0.0.0.0)
+        local_addr=listen_address
     )
 
     logger.info(f"Listening for UDP packets on {listen_address}")
 
+    # The event loop will now handle the datagrams asynchronously
+    # listen_udp will continue running and processing incoming data.
+
 
 async def start_services():
-    await listen_udp()
+    asyncio.create_task(listen_udp())
 
     # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)
