@@ -11,8 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
-from mavlink_com.MavlinkServer import UDPMavlinkServer
-from mavlink_com.MavlinkUDP import UDPMavlinkProtocol
+from MavlinkServer import UDPMavlinkServer
+from MavlinkUDP import UDPMavlinkProtocol
 from PingManager import PingManager
 from uvicorn import Config, Server
 
