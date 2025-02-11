@@ -93,12 +93,15 @@ async def start_services():
     udp_server = UDPMavlinkServer(host="0.0.0.0", port=14450)
     await udp_server.start()
 
-    # Running uvicorn server in the background
+    # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)
     server = Server(config)
 
-    # Run the FastAPI server
-    await server.serve()
+    # Run both services concurrently
+    await asyncio.gather(
+        udp_server.run(),
+        server.serve(),
+    )
 
 if __name__ == "__main__":
     logger.debug("Starting SLAM.")
