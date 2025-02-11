@@ -5,7 +5,6 @@ services:
     # network_mode: host
     ports:
       - "9050:9050"
-      - "14550:14550/udp"
     restart: unless-stopped
     environment:
       - BLUEOS=True
