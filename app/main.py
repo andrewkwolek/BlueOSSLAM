@@ -13,6 +13,7 @@ from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
 from MavlinkUDP import MavlinkUDPProtocol
 from PingManager import PingManager
+from Processor import Processor
 from uvicorn import Config, Server
 
 from settings import PING_DEVICE, UDP_PORT, DOCKER_HOST
@@ -28,6 +29,7 @@ app = FastAPI(
 logger.info(f"Starting {SERVICE_NAME}")
 data_manager = DataManager()
 ping_manager = PingManager(baudrate=115200, udp=UDP_PORT)
+data_processor = Processor()
 
 
 @app.get("/gps")
@@ -97,7 +99,7 @@ async def listen_udp():
     # Set up the UDP endpoint to listen for incoming datagrams
     listen = await loop.create_datagram_endpoint(
         # Use lambda to pass data_manager to protocol
-        lambda: MavlinkUDPProtocol(data_manager),
+        lambda: MavlinkUDPProtocol(data_processor),
         # Listen on all available network interfaces (0.0.0.0)
         local_addr=listen_address
     )

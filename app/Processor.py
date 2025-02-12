@@ -1,8 +1,11 @@
 import asyncio
 from collections import deque
+from loguru import logger
 
 from PingManager import PingManager
 from DataManager import DataManager
+
+from typedefs import MavlinkMessage
 
 
 class SensorBuffer:
@@ -36,33 +39,47 @@ class Processor:
         self.data_manager = DataManager()
         self.ping_manager = PingManager(baudrate, device, udp)
 
-        self.imu_buffer, self.attitude_buffer, self.gps_buffer, self.pressure_buffer = SensorBuffer(
-            10)
+        self.imu_buffer = SensorBuffer(10)
+        self.attitude_buffer = SensorBuffer(10)
+        self.gps_buffer = SensorBuffer(10)
+        self.pressure_buffer = SensorBuffer(10)
 
-    async def write_gps_buffer(self):
+    async def write_gps_buffer_rest(self):
         while True:
             data = await self.data_manager.get_gps_data()
             await self.gps_buffer.add_data(data)
             print(f"Added gps data: {data}")
             await asyncio.sleep(0)
 
-    async def write_imu_buffer(self):
+    async def write_imu_buffer_rest(self):
         while True:
             data = await self.data_manager.get_imu_data()
             await self.imu_buffer.add_data(data)
             print(f"Added imu data: {data}")
             await asyncio.sleep(0)
 
-    async def write_attitude_buffer(self):
+    async def write_attitude_buffer_rest(self):
         while True:
             data = await self.data_manager.get_attitude_data()
             await self.attitude_buffer.add_data(data)
             print(f"Added attitude data: {data}")
             await asyncio.sleep(0)
 
-    async def write_pressure_buffer(self):
+    async def write_pressure_buffer_rest(self):
         while True:
             data = await self.data_manager.get_pressure_data()
             await self.pressure_buffer.add_data(data)
             print(f"Added pressure data: {data}")
             await asyncio.sleep(0)
+
+    async def write_sensor_buffer(self, msg_type, msg):
+        if msg_type == MavlinkMessage.RAW_IMU:
+            self.imu_buffer.add_data(msg)
+        elif msg_type == MavlinkMessage.ATTITUDE:
+            self.attitude_buffer.add_data(msg)
+        elif msg_type == MavlinkMessage.GLOBAL_POSITION_INT:
+            self.gps_buffer.add_data(msg)
+        elif msg_type == MavlinkMessage.SCALED_PRESSURE:
+            self.pressure_buffer.add_data(msg)
+        else:
+            logger.error(f"Message is invalid type: {msg_type}")
