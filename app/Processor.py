@@ -11,26 +11,30 @@ from typedefs import MavlinkMessage
 class SensorBuffer:
     def __init__(self, max_size):
         self.buffer = deque(maxlen=max_size)
+        self.lock = asyncio.Lock()
 
     async def add_data(self, data):
-        self.buffer.append(data)
+        async with self.lock:
+            self.buffer.append(data)
 
     async def get_latest_data(self):
-        return self.buffer[-1] if self.buffer else None
+        async with self.lock:
+            return self.buffer[-1] if self.buffer else None
 
     async def get_data_near_timestamp(self, target_time):
         """Return the closest data to the target timestamp."""
-        closest_data = None
-        min_time_diff = float('inf')
+        async with self.lock:
+            closest_data = None
+            min_time_diff = float('inf')
 
-        for data in self.buffer:
-            timestamp = data['timestamp']
-            time_diff = abs(target_time - timestamp)
-            if time_diff < min_time_diff:
-                min_time_diff = time_diff
-                closest_data = (timestamp, data)
+            for data in self.buffer:
+                timestamp = data['timestamp']
+                time_diff = abs(target_time - timestamp)
+                if time_diff < min_time_diff:
+                    min_time_diff = time_diff
+                    closest_data = (timestamp, data)
 
-        return closest_data
+            return closest_data
 
 
 class Processor:
@@ -43,6 +47,7 @@ class Processor:
         self.attitude_buffer = SensorBuffer(10)
         self.gps_buffer = SensorBuffer(10)
         self.pressure_buffer = SensorBuffer(10)
+        self.servo_buffer = SensorBuffer(10)
 
     async def write_gps_buffer_rest(self):
         while True:
@@ -74,12 +79,14 @@ class Processor:
 
     async def write_sensor_buffer(self, msg_type, msg):
         if msg_type == MavlinkMessage.RAW_IMU:
-            self.imu_buffer.add_data(msg)
+            await self.imu_buffer.add_data(msg)
         elif msg_type == MavlinkMessage.ATTITUDE:
-            self.attitude_buffer.add_data(msg)
+            await self.attitude_buffer.add_data(msg)
         elif msg_type == MavlinkMessage.GLOBAL_POSITION_INT:
-            self.gps_buffer.add_data(msg)
+            await self.gps_buffer.add_data(msg)
         elif msg_type == MavlinkMessage.SCALED_PRESSURE:
-            self.pressure_buffer.add_data(msg)
+            await self.pressure_buffer.add_data(msg)
+        elif msg_type == MavlinkMessage.SERVO_OUTPUT_RAW:
+            await self.servo_buffer.add_data(msg)
         else:
             logger.error(f"Message is invalid type: {msg_type}")
