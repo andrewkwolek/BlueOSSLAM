@@ -88,7 +88,7 @@ async def root() -> HTMLResponse:
 
 async def listen_udp():
     # Listening for UDP packets on this address and port
-    listen_address = ('0.0.0.0', 14550)
+    listen_address = ('0.0.0.0', 14555)
 
     loop = asyncio.get_running_loop()
 
