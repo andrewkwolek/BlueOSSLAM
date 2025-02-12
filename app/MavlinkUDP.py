@@ -9,7 +9,7 @@ from typedefs import MavlinkMessage
 class MavlinkUDPProtocol(DatagramProtocol):
     def __init__(self, data_processor: Processor):
         self.data_processor = data_processor  # You can store data_manager to store data
-        self.mav = mavutil.mavlink_connection(None)
+        self.mav = mavutil.mavserial(None)
 
     def connection_made(self, transport):
         self.transport = transport
