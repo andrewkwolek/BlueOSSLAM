@@ -27,51 +27,49 @@ app = FastAPI(
 )
 
 logger.info(f"Starting {SERVICE_NAME}")
-data_manager = DataManager()
-ping_manager = PingManager(baudrate=115200, udp=UDP_PORT)
-data_processor = Processor()
+data_processor = Processor(baudrate=115200, udp=UDP_PORT)
 
 
 @app.get("/gps")
 @version(1, 0)
 async def get_gps_data() -> Any:
     logger.debug("Fetching GPS data.")
-    return await data_manager.get_gps_data()
+    return await data_processor.data_manager.get_gps_data()
 
 
 @app.get("/imu")
 @version(1, 0)
 async def get_gps_data() -> Any:
     logger.debug("Fetching IMU data.")
-    return await data_manager.get_imu_data()
+    return await data_processor.data_manager.get_imu_data()
 
 
 @app.get("/attitude")
 @version(1, 0)
 async def get_gps_data() -> Any:
     logger.debug("Fetching attitude data.")
-    return await data_manager.get_attitude_data()
+    return await data_processor.data_manager.get_attitude_data()
 
 
 @app.get("/ping")
 @version(1, 0)
 async def get_ping_data() -> Any:
     logger.debug("Fetching ping data.")
-    return await ping_manager.get_ping_data()
+    return await data_processor.ping_manager.get_ping_data()
 
 
 @app.post("/start_recording")
 @version(1, 0)
 async def start() -> Any:
-    await data_manager.start_recording()
-    asyncio.create_task(data_manager.record_data())
+    await data_processor.data_manager.start_recording()
+    asyncio.create_task(data_processor.data_manager.record_data())
     return {'message': 'Recording started.'}
 
 
 @app.post("/stop_recording")
 @version(1, 0)
 async def stop() -> Any:
-    await data_manager.stop_recording()
+    await data_processor.data_manager.stop_recording()
     return {'message': 'Recording stopped.'}
 
 
