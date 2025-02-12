@@ -20,8 +20,10 @@ class PingManager:
             (host, port) = self.udp.split(':')
             self.my_ping.connect_udp(host, int(port))
 
-        if self.my_ping.initialize() is False:
-            logger.error("Failed to initialize Ping!")
+        try:
+            self.my_ping.initialize()
+        except Exception as e:
+            logger.error(f"Failed to initialize Ping: {e}!")
 
     async def get_ping_data(self):
         data = self.my_ping.get_device_data()
