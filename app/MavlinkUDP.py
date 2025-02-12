@@ -3,7 +3,6 @@ from loguru import logger
 from pymavlink import mavutil
 
 from Processor import Processor
-from typedefs import MavlinkMessage
 
 
 class MavlinkUDPProtocol(DatagramProtocol):
