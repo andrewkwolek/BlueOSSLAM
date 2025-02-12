@@ -5,14 +5,12 @@ import sys
 from loguru import logger
 from typing import Any
 
-from DataManager import DataManager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
 from MavlinkUDP import MavlinkUDPProtocol
-from PingManager import PingManager
 from Processor import Processor
 from uvicorn import Config, Server
 
