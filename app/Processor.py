@@ -45,6 +45,7 @@ class Processor:
         self.ping_manager = PingManager(baudrate, device, udp)
 
         self.mav = mavutil.mavlink_connection('udpin:0.0.0.0:14555')
+        logger.info("Mavlink connection established.")
 
         self.imu_buffer = SensorBuffer(10)
         self.attitude_buffer = SensorBuffer(10)
