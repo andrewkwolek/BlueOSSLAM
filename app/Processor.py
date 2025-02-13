@@ -87,7 +87,7 @@ class Processor:
             msg = self.mav.recv_match()
             if msg:
                 logger.debug("Message received!")
-                self.write_sensor_buffer(msg.get_type(), msg.to_dict())
+                await self.write_sensor_buffer(msg.get_type(), msg.to_dict())
             await asyncio.sleep(0)
 
     async def write_sensor_buffer(self, msg_type, msg):
