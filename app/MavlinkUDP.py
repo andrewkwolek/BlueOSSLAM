@@ -25,7 +25,7 @@ class MavlinkUDPProtocol(DatagramProtocol):
 
         if msg:
             msg_type = msg.get_type()
-
+            logger.info(f"Message written to buffer.")
             self.data_processor.write_sensor_buffer(msg_type, msg)
 
     def error_received(self, exc):
