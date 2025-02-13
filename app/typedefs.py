@@ -11,6 +11,7 @@ class MavlinkMessage(str, Enum):
     RAW_IMU = "RAW_IMU"
     SCALED_PRESSURE = "SCALED_PRESSURE"
     SERVO_OUTPUT_RAW = "SERVO_OUTPUT_RAW"
+    SYSTEM_TIME = "SYSTEM_TIME"
 
 
 class GPSData(BaseModel):
@@ -54,6 +55,10 @@ class ServoData(BaseModel):
     servo4: int
     servo5: int
     servo6: int
+
+
+class TimeData(BaseModel):
+    timestamp: int
 
 
 class LocalizationData(BaseModel):

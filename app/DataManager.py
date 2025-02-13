@@ -5,7 +5,7 @@ import requests
 from datetime import datetime
 from loguru import logger
 
-from typedefs import AttitudeData, GPSData, IMUData, PressureData, LocalizationData, MavlinkMessage
+from typedefs import AttitudeData, GPSData, IMUData, PressureData, TimeData, LocalizationData, MavlinkMessage
 from settings import DATA_FILEPATH, VEHICLE_IP
 
 
@@ -70,7 +70,8 @@ class DataManager:
             return temp_pos
 
         except requests.RequestException as e:
-            logger.error(f"Could not get GPS response {e}.")
+            logger.error(
+                f"Could not get {MavlinkMessage.GLOBAL_POSITION_INT} response {e}.")
 
     async def get_imu_data(self):
         path = os.path.join(self.url, MavlinkMessage.RAW_IMU)
@@ -91,7 +92,8 @@ class DataManager:
             return temp_pos
 
         except requests.RequestException as e:
-            logger.error(f"Could not get IMU response {e}.")
+            logger.error(
+                f"Could not get {MavlinkMessage.RAW_IMU} response {e}.")
 
     async def get_attitude_data(self):
         path = os.path.join(self.url, MavlinkMessage.ATTITUDE)
@@ -112,7 +114,8 @@ class DataManager:
             return temp_pos
 
         except requests.RequestException as e:
-            logger.error(f"Could not get attitude response {e}.")
+            logger.error(
+                f"Could not get {MavlinkMessage.ATTITUDE} response {e}.")
 
     async def get_pressure_data(self):
         path = os.path.join(self.url, MavlinkMessage.SCALED_PRESSURE)
@@ -129,7 +132,24 @@ class DataManager:
             return temp_press
 
         except requests.RequestException as e:
-            logger.error(f"Could not get attitude response {e}.")
+            logger.error(
+                f"Could not get {MavlinkMessage.SCALED_PRESSURE} response {e}.")
+
+    async def get_time_data(self):
+        path = os.path.join(self.url, MavlinkMessage.SYSTEM_TIME)
+        try:
+            att_response = requests.get(path, timeout=1)
+            msg = att_response.json()['message']
+
+            temp_time = TimeData(
+                timestamp=msg['time_boot_ms']
+            )
+
+            return temp_time
+
+        except requests.RequestException as e:
+            logger.error(
+                f"Could not get {MavlinkMessage.SYSTEM_TIME} response {e}.")
 
     async def get_localization_data(self):
         gps = await self.get_gps_data()
