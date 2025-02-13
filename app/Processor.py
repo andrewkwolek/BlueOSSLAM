@@ -44,7 +44,7 @@ class Processor:
         self.data_manager = DataManager()
         self.ping_manager = PingManager(baudrate, device, udp)
 
-        self.mav = mavutil.mavlink_connection('udpin:0.0.0.0:14550')
+        self.mav = mavutil.mavlink_connection('udpin:0.0.0.0:14555')
 
         self.imu_buffer = SensorBuffer(10)
         self.attitude_buffer = SensorBuffer(10)
