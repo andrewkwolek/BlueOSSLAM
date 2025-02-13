@@ -10,14 +10,15 @@ from typedefs import MavlinkMessage
 
 
 class SensorBuffer:
-    def __init__(self, max_size):
+    def __init__(self, max_size, type):
         self.buffer = deque(maxlen=max_size)
         self.lock = asyncio.Lock()
+        self.type = type
 
     async def add_data(self, data):
         async with self.lock:
             self.buffer.append(data)
-            logger.info(f"{len(self.buffer)}")
+            logger.debug(f"Updated {self.type} buffer.")
 
     async def get_latest_data(self):
         async with self.lock:
@@ -48,11 +49,11 @@ class Processor:
         self.mav = mavutil.mavlink_connection('udpin:0.0.0.0:14550')
         logger.info("Mavlink connection established.")
 
-        self.imu_buffer = SensorBuffer(10)
-        self.attitude_buffer = SensorBuffer(10)
-        self.gps_buffer = SensorBuffer(10)
-        self.pressure_buffer = SensorBuffer(10)
-        self.servo_buffer = SensorBuffer(10)
+        self.imu_buffer = SensorBuffer(10, MavlinkMessage.RAW_IMU)
+        self.attitude_buffer = SensorBuffer(10, MavlinkMessage.ATTITUDE)
+        self.gps_buffer = SensorBuffer(10, MavlinkMessage.GLOBAL_POSITION_INT)
+        self.pressure_buffer = SensorBuffer(10, MavlinkMessage.SCALED_PRESSURE)
+        self.servo_buffer = SensorBuffer(10, MavlinkMessage.SERVO_OUTPUT_RAW)
 
     async def write_gps_buffer_rest(self):
         while True:
@@ -101,5 +102,3 @@ class Processor:
             await self.pressure_buffer.add_data(msg)
         elif msg_type == MavlinkMessage.SERVO_OUTPUT_RAW:
             await self.servo_buffer.add_data(msg)
-        else:
-            logger.error(f"Message is invalid type: {msg_type}")
