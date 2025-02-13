@@ -21,7 +21,7 @@ class MavlinkUDPProtocol(DatagramProtocol):
         # You can store the data in your data manager or any other class
         # self.data_manager.process_udp_data(data, addr)
         self.mav.recv(raw_data)
-        msg = self.mav.recv_match()
+        msg = self.mav.recv_msg()
 
         if msg:
             msg_type = msg.get_type()
