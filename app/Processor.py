@@ -17,6 +17,7 @@ class SensorBuffer:
     async def add_data(self, data):
         async with self.lock:
             self.buffer.append(data)
+            logger.info(f"{len(self.buffer)}")
 
     async def get_latest_data(self):
         async with self.lock:
