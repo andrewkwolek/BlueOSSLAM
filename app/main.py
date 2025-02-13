@@ -1,7 +1,9 @@
 #! /usr/bin/env python3
 import asyncio
+import cv2
 import os
 import sys
+import numpy as np
 from loguru import logger
 from typing import Any
 
@@ -12,6 +14,8 @@ from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
 from Processor import Processor
 from uvicorn import Config, Server
+
+from video_odometry import MonoVideoOdometery, visual_odometry
 
 from settings import PING_DEVICE, UDP_PORT, DOCKER_HOST
 
@@ -86,6 +90,24 @@ async def root() -> HTMLResponse:
 
 
 async def start_services():
+    video_path = "udp://192.168.2.1:5600"
+
+    focal = 718.8560
+    pp = (607.1928, 185.2157)
+    R_total = np.zeros((3, 3))
+    t_total = np.empty(shape=(3, 1))
+
+    # Parameters for lucas kanade optical flow
+    lk_params = dict(winSize=(21, 21),
+                     criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 0.01))
+
+    vo = MonoVideoOdometery(video_path, focal, pp, lk_params)
+    traj = np.zeros(shape=(600, 800, 3))
+
+    flag = False
+
+    asyncio.create_task(visual_odometry(vo, flag, traj))
+
     asyncio.create_task(data_processor.receive_mavlink_data())
 
     # Running the uvicorn server in the background
