@@ -86,7 +86,7 @@ class Processor:
             if msg:
                 logger.debug("Message received!")
                 self.write_sensor_buffer(msg.get_type(), msg.to_dict())
-            asyncio.sleep(0)
+            await asyncio.sleep(0)
 
     async def write_sensor_buffer(self, msg_type, msg):
         if msg_type == MavlinkMessage.RAW_IMU:
