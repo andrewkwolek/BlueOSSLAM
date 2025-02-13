@@ -10,7 +10,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
-from MavlinkUDP import MavlinkUDPProtocol
 from Processor import Processor
 from uvicorn import Config, Server
 
@@ -86,30 +85,8 @@ async def root() -> HTMLResponse:
     return HTMLResponse(content="index.html", status_code=200)
 
 
-async def listen_udp():
-    # Listening for UDP packets on this address and port
-    listen_address = ('0.0.0.0', 14550)
-
-    loop = asyncio.get_running_loop()
-
-    # Set up the UDP endpoint to listen for incoming datagrams
-    listen = await loop.create_datagram_endpoint(
-        # Use lambda to pass data_manager to protocol
-        lambda: MavlinkUDPProtocol(data_processor),
-        # Listen on all available network interfaces (0.0.0.0)
-        local_addr=listen_address
-    )
-
-    logger.info(f"Listening for UDP packets on {listen_address}")
-
-    # The event loop will now handle the datagrams asynchronously
-    # listen_udp will continue running and processing incoming data.
-    await asyncio.Future()
-    logger.info(f"Exiting")
-
-
 async def start_services():
-    asyncio.create_task(listen_udp())
+    asyncio.create_task(data_processor.receive_mavlink_data())
 
     # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)

@@ -1,6 +1,7 @@
 import asyncio
 from collections import deque
 from loguru import logger
+from pymavlink import mavutil
 
 from PingManager import PingManager
 from DataManager import DataManager
@@ -43,6 +44,8 @@ class Processor:
         self.data_manager = DataManager()
         self.ping_manager = PingManager(baudrate, device, udp)
 
+        self.mav = mavutil.mavlink_connection('udpin:0.0.0.0:14550')
+
         self.imu_buffer = SensorBuffer(10)
         self.attitude_buffer = SensorBuffer(10)
         self.gps_buffer = SensorBuffer(10)
@@ -76,6 +79,13 @@ class Processor:
             await self.pressure_buffer.add_data(data)
             print(f"Added pressure data: {data}")
             await asyncio.sleep(0)
+
+    async def receive_mavlink_data(self):
+        while True:
+            msg = self.mav.recv_match()
+            if msg:
+                self.write_sensor_buffer(msg.get_type(), msg.to_dict())
+            asyncio.sleep(0)
 
     async def write_sensor_buffer(self, msg_type, msg):
         if msg_type == MavlinkMessage.RAW_IMU:
