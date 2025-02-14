@@ -4,6 +4,12 @@ RUN apt-get update && \
     apt-get install -y \
     build-essential \
     libgirepository1.0-dev \
+    libgirepository-2.0-dev \
+    gcc \
+    libcairo2-dev \
+    pkg-config \
+    python3-dev \
+    gir1.2-gtk-4.0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY app /app
