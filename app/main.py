@@ -106,8 +106,10 @@ async def start_services():
 
     flag = False
 
+    logger.info("Starting visual odometry.")
     asyncio.create_task(visual_odometry(vo, flag, traj))
 
+    logger.info("Starting data processor.")
     asyncio.create_task(data_processor.receive_mavlink_data())
 
     # Running the uvicorn server in the background

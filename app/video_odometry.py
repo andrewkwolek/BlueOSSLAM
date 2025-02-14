@@ -3,6 +3,8 @@ import numpy as np
 import cv2
 import os
 
+from loguru import logger
+
 
 class MonoVideoOdometery(object):
     def __init__(self,
@@ -164,12 +166,14 @@ class MonoVideoOdometery(object):
 
 async def visual_odometry(vo: MonoVideoOdometery, flag: bool, traj):
     while vo.hasNextFrame():
+        logger.info("Received frame.")
         frame = vo.current_frame
         cv2.imshow('frame', frame)
         k = cv2.waitKey(1)
         if k == 27:  # Escape key to stop
             break
 
+        logger.info("Passed wait key.")
         if k == 121:  # 'y' key to toggle flow lines
             flag = not flag
             def toggle_out(flag): return "On" if flag else "Off"
@@ -177,8 +181,10 @@ async def visual_odometry(vo: MonoVideoOdometery, flag: bool, traj):
             mask = np.zeros_like(vo.old_frame)
             mask = np.zeros_like(vo.current_frame)
 
+        logger.info("Processing frame.")
         await vo.process_frame()
 
+        logger.info("Getting coordinates.")
         print(await vo.get_mono_coordinates())
 
         mono_coord = await vo.get_mono_coordinates()
