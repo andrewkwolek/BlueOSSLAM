@@ -2,32 +2,25 @@ FROM python:3.9-slim-bullseye
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc && \
+# Setup to prevent libc-bin triggers on arm64
+RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
+        mkdir -p /var/lib/dpkg/info && \
+        touch /var/lib/dpkg/info/libc-bin.list && \
+        touch /var/lib/dpkg/info/libc-bin.postinst && \
+        chmod +x /var/lib/dpkg/info/libc-bin.postinst && \
+        echo "exit 0" > /var/lib/dpkg/info/libc-bin.postinst; \
+    fi && \
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        gcc \
+        libcairo2-dev \
+        pkg-config \
+        gobject-introspection \
+        libgirepository1.0-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends libcairo2-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends pkg-config && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gobject-introspection && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends libgirepository1.0-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-# Rest of your Dockerfile...
+# Rest of your Dockerfile remains the same...
 
 COPY app /app
 RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
