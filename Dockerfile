@@ -1,6 +1,9 @@
 FROM python:3.9-slim-bullseye
 
-RUN apt-get update && apt-get upgrade && apt-get install -y gcc libcairo2-dev pkg-config gobject-introspection libgirepository1.0-dev
+RUN apt-get update && \
+    apt-get install -y gcc libcairo2-dev pkg-config gobject-introspection libgirepository1.0-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY app /app
 RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
@@ -14,23 +17,23 @@ EXPOSE 5600/udp
 LABEL version="1.0.1"
 LABEL permissions='{\
   "ExposedPorts": {\
-    "9050/tcp": {}\
-    "14550/udp: {}"\
-    "5600/udp: {}"\
+    "9050/tcp": {},\
+    "14550/udp": {},\
+    "5600/udp": {}\
   },\
   "HostConfig": {\
-  "Binds":["/usr/blueos/extensions/blueos-slam:/app/logs"],\
+    "Binds":["/usr/blueos/extensions/blueos-slam:/app/logs"],\
     "PortBindings": {\
       "9050/tcp": [\
         {\
           "HostPort": "9050"\
         }\
-      ]\
+      ],\
       "14550/udp": [\
         {\
           "HostPort": "14550"\
         }\
-      ]\
+      ],\
       "5600/udp": [\
         {\
           "HostPort": "5600"\
