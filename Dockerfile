@@ -1,6 +1,6 @@
 FROM python:3.9-slim-bullseye
 
-RUN apt-get update && apt-get install -y gcc libcairo2-dev pkg-config gobject-introspection libgirepository1.0-dev
+RUN apt-get update && apt-get upgrade && apt-get install -y gcc libcairo2-dev pkg-config gobject-introspection libgirepository1.0-dev
 
 COPY app /app
 RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
