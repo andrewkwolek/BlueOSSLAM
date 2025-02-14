@@ -1,16 +1,33 @@
-FROM python:3.9-slim-buster
+FROM python:3.9-slim-bullseye
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        gcc \
-        libcairo2-dev \
-        pkg-config \
-        gobject-introspection \
-        libgirepository1.0-dev && \
+    apt-get install -y --no-install-recommends gcc && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libcairo2-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends pkg-config && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gobject-introspection && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libgirepository1.0-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Rest of your Dockerfile...
 
 COPY app /app
 RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
