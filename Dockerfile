@@ -7,6 +7,7 @@ RUN mkdir -p /app/slam_data
 
 EXPOSE 9050
 EXPOSE 14550/udp
+EXPOSE 5600/udp
 
 LABEL version="1.0.1"
 LABEL permissions='{\
@@ -23,6 +24,11 @@ LABEL permissions='{\
         }\
       ]\
       "14550/udp": [\
+        {\
+          "HostPort": "14550"\
+        }\
+      ]\
+      "5600/udp": [\
         {\
           "HostPort": "14550"\
         }\

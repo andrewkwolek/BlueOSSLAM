@@ -6,6 +6,7 @@ services:
     ports:
       - "9050:9050"
       - "14550:14550/udp"
+      - "5600:5600/udp"
     restart: unless-stopped
     environment:
       - BLUEOS=True
