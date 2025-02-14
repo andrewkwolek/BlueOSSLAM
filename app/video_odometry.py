@@ -1,3 +1,4 @@
+import asyncio
 import numpy as np
 import cv2
 import os
@@ -43,7 +44,7 @@ class MonoVideoOdometery(object):
 
         self.process_frame()
 
-    def hasNextFrame(self):
+    async def hasNextFrame(self):
         '''Used to determine whether there are remaining frames in the video
 
         Returns:
@@ -51,7 +52,7 @@ class MonoVideoOdometery(object):
         '''
         return self.cap.isOpened()
 
-    def detect(self, img):
+    async def detect(self, img):
         '''Used to detect features and parse into useable format
 
         Arguments:
@@ -66,7 +67,7 @@ class MonoVideoOdometery(object):
 
         return np.array([x.pt for x in p0], dtype=np.float32).reshape(-1, 1, 2)
 
-    def visual_odometery(self):
+    async def visual_odometery(self):
         '''
         Used to perform visual odometery. If features fall out of frame
         such that there are less than 2000 features remaining, a new feature
@@ -101,7 +102,7 @@ class MonoVideoOdometery(object):
 
         self.n_features = self.good_new.shape[0]
 
-    def get_mono_coordinates(self):
+    async def get_mono_coordinates(self):
         diag = np.array([[-1, 0, 0],
                         [0, -1, 0],
                         [0, 0, -1]])
@@ -109,7 +110,7 @@ class MonoVideoOdometery(object):
 
         return adj_coord.flatten()
 
-    def get_true_coordinates(self):
+    async def get_true_coordinates(self):
         '''Returns true coordinates of vehicle
 
         Returns:
@@ -117,7 +118,7 @@ class MonoVideoOdometery(object):
         '''
         return self.true_coord.flatten()
 
-    def get_absolute_scale(self):
+    async def get_absolute_scale(self):
         '''Used to provide scale estimation for multiplying translation vectors
 
         Returns:
@@ -138,7 +139,7 @@ class MonoVideoOdometery(object):
 
         return np.linalg.norm(true_vect - prev_vect)
 
-    def process_frame(self):
+    async def process_frame(self):
         '''Processes frames in the video sequence one by one
         '''
 
@@ -161,7 +162,7 @@ class MonoVideoOdometery(object):
             self.id += 1
 
 
-def visual_odometry(vo: MonoVideoOdometery, flag: bool, traj):
+async def visual_odometry(vo: MonoVideoOdometery, flag: bool, traj):
     while vo.hasNextFrame():
         frame = vo.current_frame
         cv2.imshow('frame', frame)
@@ -176,12 +177,12 @@ def visual_odometry(vo: MonoVideoOdometery, flag: bool, traj):
             mask = np.zeros_like(vo.old_frame)
             mask = np.zeros_like(vo.current_frame)
 
-        vo.process_frame()
+        await vo.process_frame()
 
-        print(vo.get_mono_coordinates())
+        print(await vo.get_mono_coordinates())
 
-        mono_coord = vo.get_mono_coordinates()
-        true_coord = vo.get_true_coordinates()
+        mono_coord = await vo.get_mono_coordinates()
+        true_coord = await vo.get_true_coordinates()
 
         print("MSE Error: ", np.linalg.norm(mono_coord - true_coord))
         print("x: {}, y: {}, z: {}".format(*[str(pt) for pt in mono_coord]))
@@ -206,3 +207,5 @@ def visual_odometry(vo: MonoVideoOdometery, flag: bool, traj):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
         cv2.imshow('trajectory', traj)
+
+        await asyncio.sleep(0)
