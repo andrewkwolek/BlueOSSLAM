@@ -39,6 +39,7 @@ class MonoVideoOdometery(object):
         self.n_features = 0
 
         # Open the video file
+        logger.info(f"Opening stream at {video_file_path}")
         self.cap = cv2.VideoCapture(video_file_path)
         if not self.cap.isOpened():
             raise ValueError(
