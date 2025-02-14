@@ -90,7 +90,7 @@ async def root() -> HTMLResponse:
 
 
 async def start_services():
-    video_path = "udp://192.168.2.1:5600"
+    video_path = "udp://host.docker.internal:5600"
 
     focal = 718.8560
     pp = (607.1928, 185.2157)

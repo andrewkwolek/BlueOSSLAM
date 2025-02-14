@@ -14,6 +14,7 @@ LABEL permissions='{\
   "ExposedPorts": {\
     "9050/tcp": {}\
     "14550/udp: {}"\
+    "5600/udp: {}"\
   },\
   "HostConfig": {\
   "Binds":["/usr/blueos/extensions/blueos-slam:/app/logs"],\
@@ -30,7 +31,7 @@ LABEL permissions='{\
       ]\
       "5600/udp": [\
         {\
-          "HostPort": "14550"\
+          "HostPort": "5600"\
         }\
       ]\
     }\
