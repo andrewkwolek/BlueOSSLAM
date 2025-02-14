@@ -1,39 +1,34 @@
-FROM python:3.11-slim
+# Use the official Python 3.12 slim image as the base image
+FROM python:3.12-slim
 
-RUN apt-get update && \
-        apt-get install -y --no-install-recommends \
-        build-essential cmake git pkg-config libgtk-3-dev \
-        libavcodec-dev libavformat-dev libswscale-dev libv4l-dev \
-        libxvidcore-dev libx264-dev libjpeg-dev libpng-dev libtiff-dev gfortran \
-        python3-dev python3-numpy
+# Set the working directory in the container
+WORKDIR /app
 
-    ARG OPENCV_VERSION=4.9.0
-    ARG OPENCV_CONTRIB_VERSION=4.9.0
+# Install system dependencies required for OpenCV and other packages
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-    RUN git clone --depth 1 --branch ${OPENCV_VERSION} https://github.com/opencv/opencv.git && \
-        git clone --depth 1 --branch ${OPENCV_CONTRIB_VERSION} https://github.com/opencv/opencv_contrib.git && \
-        mkdir -p /opencv/build && cd /opencv/build
+# Install poetry to manage dependencies
+RUN pip install --no-cache-dir poetry
 
-    RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
-        -D CMAKE_INSTALL_PREFIX=/usr/local \
-        -D INSTALL_PYTHON_EXAMPLES=OFF \
-        -D INSTALL_C_EXAMPLES=OFF \
-        -D OPENCV_ENABLE_NONFREE=ON \
-        -D OPENCV_EXTRA_MODULES_PATH=/opencv/opencv_contrib/modules \
-        -D BUILD_EXAMPLES=OFF .. && \
-        make -j$(nproc) && \
-        make install && \
-        ldconfig
+# Copy the pyproject.toml into the container
+COPY pyproject.toml /app/
 
-WORKDIR /
+# Install the Python dependencies from pyproject.toml
+RUN poetry install --no-dev
 
-COPY app /app
-RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
+# Copy the application code into the container (if any)
+COPY . /app
 
-RUN mkdir -p /app/slam_data
+# Set the command to run your application (if needed)
+CMD ["python", "main.py"]
 
+# Expose the required port for the application
 EXPOSE 9050
 
+# Add metadata labels to the Docker image
 LABEL version="1.0.1"
 LABEL permissions='{\
   "ExposedPorts": {\
@@ -61,4 +56,4 @@ LABEL company='{\
         "name": "Northwestern University",\
     }'
 LABEL requirements="core >= 1.1"
-ENTRYPOINT cd /app && python main.py
+
