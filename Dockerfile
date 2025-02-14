@@ -1,34 +1,12 @@
-# Use the official Python 3.12 slim image as the base image
-FROM python:3.12-slim
+FROM python:3.11-slim
 
-# Set the working directory in the container
-WORKDIR /app
+COPY app /app
+RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
 
-# Install system dependencies required for OpenCV and other packages
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /app/slam_data
 
-# Install poetry to manage dependencies
-RUN pip install --no-cache-dir poetry
-
-# Copy the pyproject.toml into the container
-COPY pyproject.toml /app/
-
-# Install the Python dependencies from pyproject.toml
-RUN poetry install --no-dev
-
-# Copy the application code into the container (if any)
-COPY . /app
-
-# Set the command to run your application (if needed)
-CMD ["python", "main.py"]
-
-# Expose the required port for the application
 EXPOSE 9050
 
-# Add metadata labels to the Docker image
 LABEL version="1.0.1"
 LABEL permissions='{\
   "ExposedPorts": {\
@@ -56,4 +34,4 @@ LABEL company='{\
         "name": "Northwestern University",\
     }'
 LABEL requirements="core >= 1.1"
-
+ENTRYPOINT cd /app && python main.py
