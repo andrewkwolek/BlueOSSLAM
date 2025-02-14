@@ -1,4 +1,4 @@
-FROM --platform=$TARGETPLATFORM python:3.9-slim-bullseye
+FROM python:3.9-slim-buster
 
 ENV DEBIAN_FRONTEND=noninteractive
 
