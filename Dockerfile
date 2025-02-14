@@ -1,16 +1,15 @@
 FROM python:3.11-slim
 
 # Install system dependencies, including 'patch' and build tools for compiling packages like opencv-python
-RUN apt-get update && \
-    apt-get install -y patch build-essential && \
-    rm -rf /var/lib/apt/lists/*
+RUN mkdir /.venvs
+RUN python3 -m venv /.venvs/venv
+RUN source /.venvs/venv/bin/activate
 
 # Copy the app directory and pyproject.toml
 COPY app /app
 
 # Install Python dependencies from the pyproject.toml
-RUN python -m pip install --upgrade pip && \
-    python -m pip install /app --extra-index-url https://www.piwheels.org/simple
+RUN python -m pip3 install /app --extra-index-url https://www.piwheels.org/simple
 
 # Create directories as needed
 RUN mkdir -p /app/slam_data
