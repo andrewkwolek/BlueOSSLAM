@@ -6,11 +6,13 @@ RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
 RUN mkdir -p /app/slam_data
 
 EXPOSE 9050
+EXPOSE 14550/udp
 
 LABEL version="1.0.1"
 LABEL permissions='{\
   "ExposedPorts": {\
     "9050/tcp": {}\
+    "14550/udp: {}"\
   },\
   "HostConfig": {\
   "Binds":["/usr/blueos/extensions/blueos-slam:/app/logs"],\
@@ -18,6 +20,11 @@ LABEL permissions='{\
       "9050/tcp": [\
         {\
           "HostPort": "9050"\
+        }\
+      ]\
+      "14550/udp": [\
+        {\
+          "HostPort": "14550"\
         }\
       ]\
     }\
