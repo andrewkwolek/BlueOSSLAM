@@ -1,5 +1,7 @@
 FROM python:3.9-slim-bullseye
 
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+
 COPY app /app
 RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
 
