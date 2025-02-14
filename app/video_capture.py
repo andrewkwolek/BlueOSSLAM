@@ -3,12 +3,12 @@
 BlueRov video capture class
 """
 
-# from gi.repository import Gst
-import cv2
-# import gi
 import numpy as np
+import gi
+import cv2
+from gi.repository import Gst
 
-# gi.require_version('Gst', '1.0')
+gi.require_version('Gst', '1.0')
 
 
 class Video():
@@ -32,7 +32,7 @@ class Video():
             port (int, optional): UDP port
         """
 
-        # Gst.init(None)
+        Gst.init(None)
 
         self.port = port
         self.latest_frame = self._new_frame = None
@@ -77,8 +77,8 @@ class Video():
                 ]
 
         command = ' '.join(config)
-        # self.video_pipe = Gst.parse_launch(command)
-        # self.video_pipe.set_state(Gst.State.PLAYING)
+        self.video_pipe = Gst.parse_launch(command)
+        self.video_pipe.set_state(Gst.State.PLAYING)
         self.video_sink = self.video_pipe.get_by_name('appsink0')
 
     @staticmethod
@@ -140,7 +140,7 @@ class Video():
         sample = sink.emit('pull-sample')
         self._new_frame = self.gst_to_opencv(sample)
 
-        # return Gst.FlowReturn.OK
+        return Gst.FlowReturn.OK
 
 
 if __name__ == '__main__':

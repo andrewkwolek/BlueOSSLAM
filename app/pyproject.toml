@@ -20,5 +20,6 @@ dependencies = [
     "pymavlink == 2.4.42",
     "modern-robotics == 1.1.1",
     "opencv-python-headless == 4.11.0.86",
+    "pycairo == 1.27.0",
     "PyGObject == 3.50.0"
 ]
