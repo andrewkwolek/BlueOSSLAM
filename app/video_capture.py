@@ -153,7 +153,7 @@ if __name__ == '__main__':
     while not video.frame_available():
         waited += 1
         print('\r  Frame not available (x{})'.format(waited), end='')
-        cv2.waitKey(30)
+        # cv2.waitKey(30)
     print('\nSuccess!\nStarting streaming - press "q" to quit.')
 
     while True:

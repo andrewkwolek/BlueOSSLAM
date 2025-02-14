@@ -4,6 +4,7 @@ import cv2
 import os
 
 from loguru import logger
+from video_capture import Video
 
 
 class MonoVideoOdometery(object):
@@ -39,13 +40,23 @@ class MonoVideoOdometery(object):
         self.n_features = 0
 
         # Open the video file
-        logger.info(f"Opening stream at {video_file_path}")
-        self.cap = cv2.VideoCapture(video_file_path)
-        if not self.cap.isOpened():
-            raise ValueError(
-                "The video file could not be opened. Please check the file path.")
+        # logger.info(f"Opening stream at {video_file_path}")
+        # self.cap = cv2.VideoCapture(video_file_path)
+        # if not self.cap.isOpened():
+        #     raise ValueError(
+        #         "The video file could not be opened. Please check the file path.")
 
-        self.process_frame()
+        # self.process_frame()
+
+        self.video = Video()
+
+        print('Initialising stream...')
+        waited = 0
+        while not self.video.frame_available():
+            waited += 1
+            print('\r  Frame not available (x{})'.format(waited), end='')
+
+        print('\nSuccess!\nStarting streaming - press "q" to quit.')
 
     async def hasNextFrame(self):
         '''Used to determine whether there are remaining frames in the video
@@ -53,7 +64,7 @@ class MonoVideoOdometery(object):
         Returns:
             bool -- Boolean value denoting whether there are still frames to process
         '''
-        return self.cap.isOpened()
+        return self.video.frame_available()
 
     async def detect(self, img):
         '''Used to detect features and parse into useable format
@@ -168,19 +179,6 @@ class MonoVideoOdometery(object):
 async def visual_odometry(vo: MonoVideoOdometery, flag: bool, traj):
     while vo.hasNextFrame():
         logger.info("Received frame.")
-        frame = vo.current_frame
-        cv2.imshow('frame', frame)
-        k = cv2.waitKey(1)
-        if k == 27:  # Escape key to stop
-            break
-
-        logger.info("Passed wait key.")
-        if k == 121:  # 'y' key to toggle flow lines
-            flag = not flag
-            def toggle_out(flag): return "On" if flag else "Off"
-            print("Flow lines turned ", toggle_out(flag))
-            mask = np.zeros_like(vo.old_frame)
-            mask = np.zeros_like(vo.current_frame)
 
         logger.info("Processing frame.")
         await vo.process_frame()
@@ -189,18 +187,9 @@ async def visual_odometry(vo: MonoVideoOdometery, flag: bool, traj):
         print(await vo.get_mono_coordinates())
 
         mono_coord = await vo.get_mono_coordinates()
-        true_coord = await vo.get_true_coordinates()
-
-        print("MSE Error: ", np.linalg.norm(mono_coord - true_coord))
-        print("x: {}, y: {}, z: {}".format(*[str(pt) for pt in mono_coord]))
-        print("true_x: {}, true_y: {}, true_z: {}".format(
-            *[str(pt) for pt in true_coord]))
 
         draw_x, draw_y, draw_z = [int(round(x)) for x in mono_coord]
-        true_x, true_y, true_z = [int(round(x)) for x in true_coord]
 
-        traj = cv2.circle(traj, (true_x + 400, true_z + 100),
-                          1, list((0, 0, 255)), 4)
         traj = cv2.circle(traj, (draw_x + 400, draw_z + 100),
                           1, list((0, 255, 0)), 4)
 
