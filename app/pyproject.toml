@@ -19,5 +19,5 @@ dependencies = [
     "bluerobotics-ping == 0.1.5",
     "pymavlink == 2.4.42",
     "modern-robotics == 1.1.1",
-    "opencv-python == 4.11.0.86"
+    "opencv-python"
 ]
