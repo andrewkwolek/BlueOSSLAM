@@ -65,7 +65,7 @@ RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
  -D BUILD_EXAMPLES=ON .. \
     && make -j$(nproc) && make install && ldconfig
 
-WORKDIR $APP_USER_HOME
+WORKDIR /
 
 COPY app /app
 RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
