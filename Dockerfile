@@ -1,7 +1,14 @@
-FROM python:3.9-slim-bullseye
+FROM --platform=$TARGETPLATFORM python:3.9-slim-bullseye
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install -y gcc libcairo2-dev pkg-config gobject-introspection libgirepository1.0-dev && \
+    apt-get install -y --no-install-recommends \
+        gcc \
+        libcairo2-dev \
+        pkg-config \
+        gobject-introspection \
+        libgirepository1.0-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
