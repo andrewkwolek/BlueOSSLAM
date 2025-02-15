@@ -90,6 +90,9 @@ class PingManager:
         except Exception as e:
             logger.error(f"Failed to initialize Ping: {e}!")
 
+        self.my_ping.control_auto_transmit(
+            1, 1, 500, 80, 800, 200, 0, 399, 1, 10)
+
         # Create an instance of the point cloud manager
         self.sonar_point_cloud_manager = IncrementalSonarPointCloudManager()
 
@@ -97,7 +100,7 @@ class PingManager:
         """
         Gather and process ping data, updating the point cloud incrementally.
         """
-        data = self.my_ping.get_device_data()
+        data = self.my_ping.get_auto_device_data()
         sonar_data = SonarData(
             angle=data['angle'],
             transmit_duration=data['transmit_duration'],
