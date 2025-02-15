@@ -4,10 +4,9 @@ BlueRov video capture class
 """
 
 import numpy as np
-import gi
 import cv2
 from gi.repository import Gst
-
+import gi
 gi.require_version('Gst', '1.0')
 
 
@@ -102,7 +101,7 @@ class Video():
             buffer=buf.extract_dup(0, buf.get_size()), dtype=np.uint8)
         return array
 
-    def frame(self):
+    async def frame(self):
         """ Get Frame
 
         Returns:
@@ -153,7 +152,7 @@ if __name__ == '__main__':
     while not video.frame_available():
         waited += 1
         print('\r  Frame not available (x{})'.format(waited), end='')
-        # cv2.waitKey(30)
+        cv2.waitKey(30)
     print('\nSuccess!\nStarting streaming - press "q" to quit.')
 
     while True:
