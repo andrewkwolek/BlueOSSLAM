@@ -107,7 +107,7 @@ async def v0():
 
     video = Video()
 
-    print('Initialising stream...')
+    logger.info('Initialising stream...')
     waited = 0
     while not video.frame_available():
         waited += 1

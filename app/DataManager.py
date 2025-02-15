@@ -199,6 +199,6 @@ class DataManager:
 
                 await asyncio.sleep(0)
         except Exception as e:
-            logger.error(f"Could not get attitude response {e}.")
+            logger.error(f"Could not get response {e}.")
         finally:
             logger.info("Coroutine completed.")

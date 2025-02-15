@@ -18,7 +18,7 @@ class SensorBuffer:
     async def add_data(self, data):
         async with self.lock:
             self.buffer.append(data)
-            logger.debug(f"Updated {self.type} buffer.")
+            # logger.debug(f"Updated {self.type} buffer.")
 
     async def get_latest_data(self):
         async with self.lock:
@@ -59,28 +59,28 @@ class Processor:
         while True:
             data = await self.data_manager.get_gps_data()
             await self.gps_buffer.add_data(data)
-            print(f"Added gps data: {data}")
+            # print(f"Added gps data: {data}")
             await asyncio.sleep(0)
 
     async def write_imu_buffer_rest(self):
         while True:
             data = await self.data_manager.get_imu_data()
             await self.imu_buffer.add_data(data)
-            print(f"Added imu data: {data}")
+            # print(f"Added imu data: {data}")
             await asyncio.sleep(0)
 
     async def write_attitude_buffer_rest(self):
         while True:
             data = await self.data_manager.get_attitude_data()
             await self.attitude_buffer.add_data(data)
-            print(f"Added attitude data: {data}")
+            # print(f"Added attitude data: {data}")
             await asyncio.sleep(0)
 
     async def write_pressure_buffer_rest(self):
         while True:
             data = await self.data_manager.get_pressure_data()
             await self.pressure_buffer.add_data(data)
-            print(f"Added pressure data: {data}")
+            # print(f"Added pressure data: {data}")
             await asyncio.sleep(0)
 
     async def receive_mavlink_data(self):
