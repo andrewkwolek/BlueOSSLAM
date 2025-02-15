@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 
+from loguru import logger
+
 
 class MonoVideoOdometery(object):
     def __init__(self,

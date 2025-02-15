@@ -111,20 +111,21 @@ async def v0():
     waited = 0
     while not video.frame_available():
         waited += 1
-        print('\r  Frame not available (x{})'.format(waited), end='')
+        logger.warning('\r  Frame not available (x{})'.format(waited), end='')
         cv2.waitKey(30)
-    print('\nSuccess!\nStarting streaming - press "q" to quit.')
+    logger.info('\nSuccess!\nStarting streaming - press "q" to quit.')
 
     while True:
         if video.frame_available():
+            logger.debug("Frame received.")
             frame = await video.frame()
 
             await vo.process_frame(frame)
 
             mono_coord = await vo.get_mono_coordinates()
 
-            print("x: {}, y: {}, z: {}".format(
-                *[str(pt) for pt in mono_coord]))
+            logger.info("x: {}, y: {}, z: {}".format(
+                        *[str(pt) for pt in mono_coord]))
 
         await asyncio.sleep(0)
 

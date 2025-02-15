@@ -1,8 +1,10 @@
 services:
   blueos-slam:
-    image: andrewkwolek3/blueos-blueos-slam:main
+    build:
+      context: .  # Build the image from the current directory
+      dockerfile: Dockerfile  # Specify the Dockerfile if it's not the default 'Dockerfile'
+    image: andrewkwolek3/blueos-blueos-slam:main  # Name of the image you want to build
     container_name: blueos-slam
-    # network_mode: host
     ports:
       - "9050:9050"
       - "14550:14550/udp"
