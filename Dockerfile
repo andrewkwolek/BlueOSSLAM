@@ -16,12 +16,17 @@ RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
         libcairo2-dev \
         pkg-config \
         gobject-introspection \
-        libgirepository1.0-dev && \
+        libgirepository1.0-dev \
+        gstreamer1.0 \
+        gstreamer1.0-plugins-base \
+        gstreamer1.0-plugins-good \
+        gstreamer1.0-plugins-bad \
+        gstreamer1.0-plugins-ugly \
+        gstreamer1.0-libav && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Rest of your Dockerfile remains the same...
-
+# Install Python dependencies
 COPY app /app
 RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
 
@@ -70,4 +75,5 @@ LABEL company='{\
         "name": "Northwestern University",\
     }'
 LABEL requirements="core >= 1.1"
+
 ENTRYPOINT cd /app && python main.py
