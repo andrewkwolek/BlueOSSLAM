@@ -17,12 +17,7 @@ RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
         pkg-config \
         gobject-introspection \
         libgirepository1.0-dev \
-        gstreamer1.0 \
-        gstreamer1.0-plugins-base \
-        gstreamer1.0-plugins-good \
-        gstreamer1.0-plugins-bad \
-        gstreamer1.0-plugins-ugly \
-        gstreamer1.0-libav && \
+        python3-gst-1.0 gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
