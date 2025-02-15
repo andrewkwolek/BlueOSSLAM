@@ -105,6 +105,8 @@ class PingManager:
             number_of_samples=data['number_of_samples'],
             data=list(data['data'])  # sonar strength values
         )
+        self.angle = sonar_data.angle
+        logger.info(f"Angle: {self.angle}")
 
         # Update point cloud for each strength value in the sonar data
         for strength in sonar_data.data:

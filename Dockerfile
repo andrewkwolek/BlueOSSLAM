@@ -33,13 +33,15 @@ RUN mkdir -p /app/slam_data
 EXPOSE 9050
 EXPOSE 14550/udp
 EXPOSE 5600/udp
+EXPOSE 9092/udp
 
 LABEL version="1.0.1"
 LABEL permissions='{\
   "ExposedPorts": {\
     "9050/tcp": {},\
     "14550/udp": {},\
-    "5600/udp": {}\
+    "5600/udp": {},\
+    "9092/udp: {}"\
   },\
   "HostConfig": {\
     "Binds":["/usr/blueos/extensions/blueos-slam:/app/logs"],\
@@ -57,6 +59,11 @@ LABEL permissions='{\
       "5600/udp": [\
         {\
           "HostPort": "5600"\
+        }\
+      ],\
+      "9092/udp": [\
+        {\
+          "HostPort": "9092"\
         }\
       ]\
     }\
