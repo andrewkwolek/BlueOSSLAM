@@ -112,7 +112,6 @@ async def v0():
     while not video.frame_available():
         waited += 1
         logger.warning('\r  Frame not available (x{})'.format(waited), end='')
-        cv2.waitKey(30)
     logger.info('\nSuccess!\nStarting streaming - press "q" to quit.')
 
     while True:
