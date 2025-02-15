@@ -135,6 +135,7 @@ async def start_services():
 
     logger.info("Starting data processor.")
     asyncio.create_task(data_processor.receive_mavlink_data())
+    asyncio.create_task(data_processor.receive_sonar_data())
 
     # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)

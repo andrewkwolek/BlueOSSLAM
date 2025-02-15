@@ -75,7 +75,6 @@ class IncrementalSonarPointCloudManager:
 
 class PingManager:
     def __init__(self, baudrate, device=None, udp=None):
-        self.gathering = False
         self.device = device
         self.baudrate = baudrate
         self.udp = udp
@@ -117,10 +116,9 @@ class PingManager:
         """
         Continuously gather sonar data and update point cloud.
         """
-        while self.gathering:
-            sonar_data = await self.get_ping_data()
-            # You can process the point cloud here or store it
-            current_point_cloud = self.sonar_point_cloud_manager.get_point_cloud()
-            # Use the point cloud for any additional processing
-            logger.info(
-                f"Current point cloud has {len(current_point_cloud)} points.")
+        sonar_data = await self.get_ping_data()
+        # You can process the point cloud here or store it
+        current_point_cloud = self.sonar_point_cloud_manager.get_point_cloud()
+        # Use the point cloud for any additional processing
+        logger.info(
+            f"Current point cloud has {len(current_point_cloud)} points.")

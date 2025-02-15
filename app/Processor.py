@@ -101,3 +101,8 @@ class Processor:
             await self.pressure_buffer.add_data(msg)
         elif msg_type == MavlinkMessage.SERVO_OUTPUT_RAW:
             await self.servo_buffer.add_data(msg)
+
+    async def receive_sonar_data(self):
+        while True:
+            await self.ping_manager.gather_ping_data()
+            await asyncio.sleep(0)
