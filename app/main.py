@@ -116,14 +116,14 @@ async def v0():
 
     while True:
         if video.frame_available():
-            frame = video.frame()
+            frame = await video.frame()
 
             # Process frame
             await vo.process_frame(frame)
             current_pos = await vo.get_mono_coordinates()
 
             # Scale the coordinates and negate Y (right is positive)
-            draw_y = int(round(-current_pos[1] * scale_factor))
+            draw_y = int(round(current_pos[1] * scale_factor))
             draw_x = int(round(current_pos[0] * scale_factor))
 
             # Draw black trail
@@ -160,6 +160,8 @@ async def v0():
             frame_count += 1
             if frame_count % save_interval == 0:
                 cv2.imwrite(f"trajectory_{frame_count}.png", traj)
+
+        await asyncio.sleep(0)
 
 
 async def start_services():
