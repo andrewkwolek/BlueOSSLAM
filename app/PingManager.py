@@ -1,10 +1,11 @@
+from sklearn.cluster import DBSCAN
+from typing import List, Dict, Optional
 import asyncio
 import numpy as np
 from brping import Ping360
 from brping import definitions
 from typing import List, Optional, Dict
 from loguru import logger
-from typedefs import SonarData
 from dataclasses import dataclass
 import time
 
@@ -43,85 +44,121 @@ class Ping360Data:
         )
 
 
-class SonarPointCloud:
-    def __init__(self, max_points: int = 100000, decay_time: float = 30.0):
-        """
-        Initialize the point cloud manager.
-
-        Args:
-            max_points: Maximum number of points to store
-            decay_time: Time in seconds after which points are removed
-        """
+class EnhancedSonarPointCloud:
+    def __init__(self,
+                 max_points: int = 100000,
+                 decay_time: float = 30.0,
+                 min_range: float = 0.75,
+                 max_range: float = 50.0,
+                 horizontal_spread: float = 2.0,  # Ping360 horizontal beam spread
+                 vertical_spread: float = 50.0):  # Ping360 vertical beam spread
         self.max_points = max_points
         self.decay_time = decay_time
+        self.min_range = min_range
+        self.max_range = max_range
+        self.horizontal_spread = np.radians(horizontal_spread)
+        self.vertical_spread = np.radians(vertical_spread)
         self.points: List[SonarPoint] = []
 
-        # Sonar constants
-        self.MIN_RANGE = 0.75  # meters
-        self.MAX_RANGE = 50.0  # meters
-
-    async def process_ping_data(self, ping_data: Dict,
-                                mounting_height: float = 0.0,
-                                mounting_angle: float = 0.0):
+    async def process_ping_data(self,
+                                ping_data: Dict,
+                                fss_position: np.ndarray,  # [x, y, z]
+                                fss_rotation_matrix: np.ndarray,  # 3x3 rotation matrix
+                                tilt_angle: float):  # in degrees
         """
-        Process new sonar data and add it to the point cloud.
+        Process sonar data using the highlight extension method,
+        accounting for Ping360's asymmetric beam pattern.
 
         Args:
-            ping_data: Dictionary containing Ping360 data message
-            mounting_height: Height of the sonar above reference plane (e.g., seafloor)
-            mounting_angle: Tilt angle of the sonar in degrees
+            ping_data: Dictionary containing Ping360 data
+            fss_position: Global position of the sonar [x, y, z]
+            fss_rotation_matrix: Rotation matrix from sonar to global coordinates
+            tilt_angle: Tilt angle of the sonar in degrees
         """
-        data = Ping360Data.from_dict(ping_data)
-
-        # Convert angle from gradians to radians
-        # Note: gradians are 1/400 of a full circle, radians are 1/2π of a full circle
-        angle_rad = (data.angle * 2 * np.pi) / 400
-        mounting_angle_rad = np.radians(mounting_angle)
+        # Convert angle from gradians to radians (Ping360 uses gradians)
+        azimuth = (ping_data['angle'] * 2 * np.pi) / 400
 
         # Calculate range for each sample
-        # The sample_period (in 25ns increments) affects the range calculation
-        # Speed of sound in water ≈ 1500 m/s
-        # Range = (speed_of_sound * sample_period * 25e-9 * sample_number) / 2
-        # The division by 2 is because the sound has to travel there and back
-
         speed_of_sound = 1500  # m/s
-        sample_time = data.sample_period * 25e-9  # convert to seconds
-        max_range = (speed_of_sound * sample_time * data.number_of_samples) / 2
-        ranges = np.linspace(self.MIN_RANGE, max_range, len(data.data))
+        sample_time = ping_data['sample_period'] * 25e-9  # convert to seconds
+        max_range = (speed_of_sound * sample_time *
+                     ping_data['number_of_samples']) / 2
+        ranges = np.linspace(self.min_range, max_range, len(ping_data['data']))
 
-        # Calculate positions for each point
-        for range_val, intensity in zip(ranges, data.data):
-            if intensity > 0 and self.MIN_RANGE <= range_val <= self.MAX_RANGE:
-                # Calculate base x,y position
-                x = range_val * np.cos(angle_rad)
-                y = range_val * np.sin(angle_rad)
+        # Using equation (1) from the paper with modified elevation angle calculation
+        tilt_rad = np.radians(tilt_angle)
 
-                # Apply mounting angle to adjust z
-                z = mounting_height + range_val * np.sin(mounting_angle_rad)
+        # The vertical beam is much wider, so we can detect objects within the entire vertical spread
+        # This gives us multiple potential elevation angles for each return
+        # We'll sample points along the vertical spread to better represent the possible locations
+        num_vertical_samples = 5  # Number of points to sample along vertical spread
+        elevation_angles = np.linspace(
+            tilt_rad - self.vertical_spread/2,
+            tilt_rad + self.vertical_spread/2,
+            num_vertical_samples
+        )
 
-                # Create new point
-                point = SonarPoint(
-                    x=x,
-                    y=y,
-                    z=z,
-                    intensity=float(intensity),
-                    timestamp=time.time()
-                )
+        for range_val, intensity in zip(ranges, ping_data['data']):
+            if intensity > 0 and self.min_range <= range_val <= self.max_range:
+                # For each strong return, create multiple points along the vertical spread
+                intensity_per_point = intensity / num_vertical_samples  # Distribute intensity
 
-                self.points.append(point)
+                for elevation_angle in elevation_angles:
+                    # Calculate horizontal uncertainty
+                    azimuth_with_spread = azimuth + np.random.uniform(
+                        -self.horizontal_spread/2,
+                        self.horizontal_spread/2
+                    )
 
-        # Maintain maximum size and remove old points
+                    # Calculate local coordinates as per equation (1)
+                    local_coords = np.array([
+                        range_val *
+                        np.sqrt(1 - np.sin(azimuth_with_spread) **
+                                2 - np.sin(elevation_angle)**2),
+                        range_val * np.sin(azimuth_with_spread),
+                        range_val * np.sin(elevation_angle)
+                    ])
+
+                    # Transform to global coordinates
+                    global_coords = fss_position + fss_rotation_matrix @ local_coords
+
+                    point = SonarPoint(
+                        x=float(global_coords[0]),
+                        y=float(global_coords[1]),
+                        z=float(global_coords[2]),
+                        intensity=float(intensity_per_point),
+                        timestamp=time.time()
+                    )
+
+                    self.points.append(point)
+
         self._cleanup()
+        self._remove_noise()
+
+    def _remove_noise(self, eps: float = 0.5, min_samples: int = 5):
+        """
+        Remove noise using DBSCAN clustering from sklearn.
+        """
+        if not self.points:
+            return
+
+        # Convert points to numpy array for DBSCAN
+        points_array = self.get_xyz_array()
+
+        # Perform DBSCAN clustering
+        dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+        labels = dbscan.fit_predict(points_array)
+
+        # Keep only points that belong to clusters (label != -1)
+        self.points = [point for point, label in zip(
+            self.points, labels) if label != -1]
 
     def _cleanup(self):
         """Remove old points and maintain maximum size."""
         current_time = time.time()
-
-        # Remove points older than decay_time
         self.points = [p for p in self.points
                        if (current_time - p.timestamp) < self.decay_time]
 
-        # If still too many points, remove oldest ones
         if len(self.points) > self.max_points:
             self.points = self.points[-self.max_points:]
 
@@ -137,15 +174,10 @@ class SonarPointCloud:
             return np.zeros(0)
         return np.array([p.intensity for p in self.points])
 
-    def clear(self):
-        """Clear all points from the cloud."""
-        self.points = []
-
 
 class PingManager:
     def __init__(self, device, baudrate, udp):
         self.myPing360 = Ping360()
-        self.point_cloud = SonarPointCloud()
         self.device = None
         self.baudrate = baudrate
         self.udp = udp
@@ -165,7 +197,7 @@ class PingManager:
 
     async def get_ping_data(self):
         # Print the scanning head angle
-        step = 0
+        step = 372
         while True:
             self.myPing360.control_transducer(
                 mode=1,
@@ -192,14 +224,12 @@ class PingManager:
                     "data": m.data,
                 })
                 logger.info(f"Angle: {self.data['angle']}")
-                await self.point_cloud.process_ping_data(
-                    ping_data=self.data,
-                    mounting_height=0.0,  # Adjust based on your mounting
-                    mounting_angle=0.0    # Adjust based on your mounting
-                )
-                logger.info(
-                    f"Point cloud size: {len(self.point_cloud.get_xyz_array())}")
-            step = (step + 1) % 400
+                # logger.info(
+                #     f"Point cloud size: {len(self.point_cloud.get_xyz_array())}")
+            if step == 27:
+                step = 372
+            else:
+                step = (step + 1) % 400
             await asyncio.sleep(0.1)
 
     async def shutdown(self):
