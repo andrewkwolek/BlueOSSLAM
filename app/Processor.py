@@ -44,7 +44,7 @@ class Processor:
 
     def __init__(self, baudrate, device=None, udp=None):
         self.data_manager = DataManager()
-        self.ping_manager = PingManager(baudrate, device, udp)
+        self.ping_manager = PingManager(device, baudrate, udp)
 
         self.mav = mavutil.mavlink_connection('udpin:0.0.0.0:14550')
         logger.info("Mavlink connection established.")

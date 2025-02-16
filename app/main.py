@@ -29,7 +29,7 @@ app = FastAPI(
 )
 
 logger.info(f"Starting {SERVICE_NAME}")
-data_processor = Processor(baudrate=115200, udp=UDP_PORT)
+data_processor = Processor(device=None, baudrate=115200, udp=UDP_PORT)
 
 
 @app.get("/gps")
@@ -116,7 +116,6 @@ async def v0():
 
     while True:
         if video.frame_available():
-            logger.debug("Frame received.")
             frame = await video.frame()
 
             await vo.process_frame(frame)
@@ -135,7 +134,7 @@ async def start_services():
 
     logger.info("Starting data processor.")
     asyncio.create_task(data_processor.receive_mavlink_data())
-    asyncio.create_task(data_processor.receive_sonar_data())
+    asyncio.create_task(data_processor.ping_manager.get_ping_data())
 
     # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)
