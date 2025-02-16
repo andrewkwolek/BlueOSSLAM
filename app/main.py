@@ -93,39 +93,73 @@ async def root() -> HTMLResponse:
 async def v0():
     focal = 1188.0
     pp = (960, 540)
-    R_total = np.zeros((3, 3))
-    t_total = np.empty(shape=(3, 1))
-
-    # Parameters for lucas kanade optical flow
     lk_params = dict(winSize=(21, 21),
                      criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 30, 0.01))
 
+    # Initialize Visual Odometry
     vo = MonoVideoOdometery(focal, pp, lk_params)
-    traj = np.zeros(shape=(600, 800, 3))
 
-    flag = False
+    # Initialize trajectory visualization with white background
+    traj = np.ones((600, 800, 3), dtype=np.uint8) * 255
+
+    # Scale factor for visualization
+    scale_factor = 5.0
 
     video = Video()
-
-    logger.info('Initialising stream...')
-    waited = 0
+    logger.info('Initializing stream...')
     while not video.frame_available():
-        waited += 1
-        logger.warning('\r  Frame not available (x{})'.format(waited), end='')
-    logger.info('\nSuccess!\nStarting streaming - press "q" to quit.')
+        pass
+    logger.info('Stream initialized!')
+
+    save_interval = 100  # Save trajectory image every N frames
+    frame_count = 0
 
     while True:
         if video.frame_available():
-            frame = await video.frame()
+            frame = video.frame()
 
+            # Process frame
             await vo.process_frame(frame)
+            current_pos = await vo.get_mono_coordinates()
 
-            mono_coord = await vo.get_mono_coordinates()
+            # Scale the coordinates and negate Y (right is positive)
+            draw_y = int(round(-current_pos[1] * scale_factor))
+            draw_x = int(round(current_pos[0] * scale_factor))
 
-            logger.info("x: {}, y: {}, z: {}".format(
-                        *[str(pt) for pt in mono_coord]))
+            # Draw black trail
+            cv2.circle(traj, (draw_y + 400, draw_x + 300), 1, (0, 0, 0), 2)
 
-        await asyncio.sleep(0)
+            # Draw coordinate axes
+            origin = (400, 300)
+            axes_length = 50
+            axes_colors = [(0, 0, 255), (0, 255, 0)]
+
+            # X-axis vertical (forward/back) in red
+            cv2.arrowedLine(traj, origin, (origin[0], origin[1] - axes_length),
+                            axes_colors[0], 2)
+            # Y-axis horizontal (right is positive) in green
+            cv2.arrowedLine(traj, origin, (origin[0] + axes_length, origin[1]),
+                            axes_colors[1], 2)
+
+            # Add labels
+            cv2.putText(traj, 'X (forward)', (origin[0] - 20, origin[1] - axes_length - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+            cv2.putText(traj, 'Y (right)', (origin[0] + axes_length + 10, origin[1] + 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+
+            # Show current position values (unscaled)
+            pos_text = f"X: {current_pos[0]:.2f} Y: {-current_pos[1]:.2f}"
+            cv2.putText(traj, pos_text, (30, 30), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.7, (0, 0, 0), 2)
+
+            # Print position to console
+            logger.info(
+                f"Position - X: {current_pos[0]:.2f} Y: {-current_pos[1]:.2f}")
+
+            # Save trajectory image periodically
+            frame_count += 1
+            if frame_count % save_interval == 0:
+                cv2.imwrite(f"trajectory_{frame_count}.png", traj)
 
 
 async def start_services():

@@ -224,8 +224,7 @@ class PingManager:
                     "data": m.data,
                 })
                 logger.info(f"Angle: {self.data['angle']}")
-                # logger.info(
-                #     f"Point cloud size: {len(self.point_cloud.get_xyz_array())}")
+
             if step == 27:
                 step = 372
             else:
