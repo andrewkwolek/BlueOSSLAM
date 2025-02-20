@@ -42,9 +42,8 @@ class SensorBuffer:
 
 class Processor:
 
-    def __init__(self, baudrate, device=None, udp=None):
+    def __init__(self):
         self.data_manager = DataManager()
-        self.ping_manager = PingManager(device, baudrate, udp)
 
         self.mav = mavutil.mavlink_connection('udpin:0.0.0.0:14550')
         logger.info("Mavlink connection established.")
@@ -101,8 +100,3 @@ class Processor:
             await self.pressure_buffer.add_data(msg)
         elif msg_type == MavlinkMessage.SERVO_OUTPUT_RAW:
             await self.servo_buffer.add_data(msg)
-
-    async def receive_sonar_data(self):
-        while True:
-            await self.ping_manager.gather_ping_data()
-            await asyncio.sleep(0)
