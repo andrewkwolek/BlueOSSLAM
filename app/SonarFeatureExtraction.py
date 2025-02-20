@@ -44,7 +44,7 @@ class SonarFeatureExtraction:
 
     async def extract_features(self, sonar_data, bearings, range_resolution):
         '''Process sonar data and extract features using CFAR'''
-        img = np.array(sonar_data).astype(np.uint8)
+        img = sonar_data
 
         if self.map_x is None or self.map_y is None:
             await self.generate_map_xy(bearings, range_resolution, len(sonar_data))

@@ -95,7 +95,7 @@ class PingManager:
                     "sample_period": m.sample_period,
                     "transmit_frequency": m.transmit_frequency,
                     "number_of_samples": m.number_of_samples,
-                    "data": m.data,
+                    "data": np.frombuffer(m.data, dtype=np.uint8),
                 })
                 logger.info(f"Angle: {self.data['angle']}")
                 self.angles.append(self.data['angle'])
