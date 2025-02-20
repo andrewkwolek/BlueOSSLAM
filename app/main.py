@@ -165,8 +165,8 @@ async def v0():
 
 
 async def start_services():
-    logger.info("Starting visual odometry.")
-    asyncio.create_task(v0())
+    # logger.info("Starting visual odometry.")
+    # asyncio.create_task(v0())
 
     logger.info("Starting data processor.")
     asyncio.create_task(data_processor.receive_mavlink_data())
