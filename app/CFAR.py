@@ -2,7 +2,7 @@ import math
 import numpy as np
 from scipy.optimize import root
 
-from . import cfar
+import cfar_utils
 
 
 class CFAR(object):
@@ -38,16 +38,16 @@ class CFAR(object):
             "OS": (self.Ntc // 2, self.Ngc // 2, self.rank, self.threshold_factor_OS),
         }
         self.detector = {
-            "CA": cfar.ca,
-            "SOCA": cfar.soca,
-            "GOCA": cfar.goca,
-            "OS": cfar.os,
+            "CA": cfar_utils.ca,
+            "SOCA": cfar_utils.soca,
+            "GOCA": cfar_utils.goca,
+            "OS": cfar_utils.os,
         }
         self.detector2 = {
-            "CA": cfar.ca2,
-            "SOCA": cfar.soca2,
-            "GOCA": cfar.goca2,
-            "OS": cfar.os2,
+            "CA": cfar_utils.ca2,
+            "SOCA": cfar_utils.soca2,
+            "GOCA": cfar_utils.goca2,
+            "OS": cfar_utils.os2,
         }
 
     def __str__(self):
