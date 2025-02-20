@@ -98,6 +98,8 @@ class PingManager:
                     "data": m.data,
                 })
                 logger.info(f"Angle: {self.data['angle']}")
+                self.angles.append(self.data['angle'])
+                self.data_mat.append(np.array(self.data['data']))
 
             if step == 27:
                 step = 372
@@ -106,8 +108,6 @@ class PingManager:
                 self.data_mat = []
                 self.angles = []
             else:
-                self.angles.append(self.data['angle'])
-                self.data_mat.append(np.array(self.data['data']))
                 step = (step + 1) % 400
             await asyncio.sleep(0.1)
 
