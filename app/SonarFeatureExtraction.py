@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 from scipy.interpolate import interp1d
 from CFAR import CFAR  # Your CFAR implementation
+from loguru import logger
 
 
 class SonarFeatureExtraction:
@@ -23,8 +24,12 @@ class SonarFeatureExtraction:
         _res = range_resolution
         _height = num_ranges * _res
         _rows = num_ranges
-        _width = np.sin(np.radians(
-            bearings[-1] - bearings[0]) / 2) * _height * 2
+
+        if bearings[-1] < bearings[0]:
+            bearing_range = (bearings[-1] + 400) - bearings[0]
+        else:
+            bearing_range = bearings[-1] - bearings[0]
+        _width = np.sin(np.radians(bearing_range) / 2) * _height * 2
         _cols = int(np.ceil(_width / _res))
 
         bearings = np.radians(bearings)
@@ -42,6 +47,10 @@ class SonarFeatureExtraction:
         self.map_y = np.asarray(r / _res, dtype=np.float32)
         self.map_x = np.asarray(f_bearings(b), dtype=np.float32)
 
+        logger.debug(
+            f"map_x shape: {self.map_x.shape}, map_y shape: {self.map_y.shape}")
+        print(f"XX shape: {XX.shape}, YY shape: {YY.shape}")
+
     async def extract_features(self, sonar_data, bearings, range_resolution):
         '''Process sonar data and extract features using CFAR'''
         img = sonar_data
@@ -52,6 +61,9 @@ class SonarFeatureExtraction:
         # CFAR Detection
         peaks = self.detector.detect(img, self.alg)
         peaks &= img > self.threshold  # Apply additional thresholding if necessary
+
+        logger.debug(
+            f"map_x shape: {self.map_x.shape}, map_y shape: {self.map_y.shape}")
 
         # Convert to Cartesian coordinates
         peaks_cartesian = cv2.remap(

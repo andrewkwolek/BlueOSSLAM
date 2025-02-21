@@ -90,7 +90,7 @@ class PingManager:
                 self.data = ({
                     "mode": m.mode,
                     "gain_setting": m.gain_setting,
-                    "angle": m.angle,
+                    "angle": m.angle * (180 / 200),
                     "transmit_duration": m.transmit_duration,
                     "sample_period": m.sample_period,
                     "transmit_frequency": m.transmit_frequency,
@@ -104,6 +104,7 @@ class PingManager:
             if step == 27:
                 step = 372
                 self.current_scan = np.array(self.data_mat).T
+                logger.debug(f"Angles: {len(self.angles)}")
                 self.features = await self.feature_extractor.extract_features(self.current_scan, self.angles, 1481*0.000002/2)
                 self.data_mat = []
                 self.angles = []
@@ -120,10 +121,8 @@ class PingManager:
 
         logger.info("Ping360 shutting down")
 
-    @property
     def get_data(self):
         return self.current_scan
 
-    @property
     def get_point_cloud(self):
         return self.features

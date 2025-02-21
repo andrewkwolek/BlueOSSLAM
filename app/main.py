@@ -80,13 +80,16 @@ async def stop() -> Any:
 
 
 @app.get("/pointcloud")
+@version(1, 0)
 async def get_point_cloud():
     # Fetch the point cloud data from the sonar class
-    # Assuming ping_manager is your instance
-    point_cloud = ping_manager.get_point_cloud
+    point_cloud = ping_manager.get_point_cloud()
 
     if point_cloud is None or len(point_cloud) == 0:
+        logger.warning("No point cloud data available.")
         return {"message": "No point cloud data available yet."}
+
+    logger.debug(f"Point cloud shape: {point_cloud.shape}")
 
     # Assuming point_cloud is a NumPy array with shape (N, 2) for (y, x) coordinates
     y = point_cloud[:, 0]
