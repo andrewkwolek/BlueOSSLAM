@@ -26,7 +26,7 @@ class SonarFeatureExtraction:
         _rows = num_ranges
 
         if bearings[-1] < bearings[0]:
-            bearing_range = 360 - (bearings[-1] - bearings[0])
+            bearing_range = 359 - (bearings[0] - bearings[-1])
         else:
             bearing_range = bearings[-1] - bearings[0]
         _width = np.sin(np.radians(bearing_range)) * _height
@@ -41,7 +41,8 @@ class SonarFeatureExtraction:
         XX, YY = np.meshgrid(range(_cols), range(_rows))
         x = _res * (_rows - YY)
         y = _res * (-_cols / 2.0 + XX + 0.5)
-        b = np.arctan2(y, x)
+        b = np.clip(np.arctan2(y, x), np.radians(
+            bearings[0]), np.radians(bearings[-1]))
         r = np.sqrt(x ** 2 + y ** 2)
 
         self.map_y = np.asarray(r / _res, dtype=np.float32)
@@ -49,7 +50,8 @@ class SonarFeatureExtraction:
 
         logger.debug(
             f"map_x shape: {self.map_x.shape}, map_y shape: {self.map_y.shape}")
-        print(f"XX shape: {XX.shape}, YY shape: {YY.shape}")
+        logger.debug(f"XX shape: {XX.shape}, YY shape: {YY.shape}")
+        logger.debug(f"X values: {self.map_x}")
 
     async def extract_features(self, sonar_data, bearings, range_resolution):
         '''Process sonar data and extract features using CFAR'''
