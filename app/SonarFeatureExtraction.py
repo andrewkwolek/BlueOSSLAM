@@ -26,10 +26,10 @@ class SonarFeatureExtraction:
         _rows = num_ranges
 
         if bearings[-1] < bearings[0]:
-            bearing_range = (bearings[-1] + 400) - bearings[0]
+            bearing_range = 360 - (bearings[-1] - bearings[0])
         else:
             bearing_range = bearings[-1] - bearings[0]
-        _width = np.sin(np.radians(bearing_range) / 2) * _height * 2
+        _width = np.sin(np.radians(bearing_range)) * _height
         _cols = int(np.ceil(_width / _res))
 
         bearings = np.radians(bearings)
