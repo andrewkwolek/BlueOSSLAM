@@ -69,7 +69,7 @@ class PingManager:
         self.feature_extractor = SonarFeatureExtraction()
         self.features = None
 
-    async def get_ping_data(self):
+    async def get_ping_data(self, transmit_duration, sample_period, transmit_frequency):
         # Print the scanning head angle
         step = 372
         while True:
@@ -77,9 +77,9 @@ class PingManager:
                 mode=1,
                 gain_setting=0,
                 angle=step,
-                transmit_duration=80,
-                sample_period=80,
-                transmit_frequency=750,
+                transmit_duration=transmit_duration,
+                sample_period=sample_period,
+                transmit_frequency=transmit_frequency,
                 number_of_samples=1024,
                 transmit=1,
                 reserved=0

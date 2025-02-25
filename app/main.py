@@ -18,7 +18,7 @@ from Processor import Processor
 from PingManager import PingManager
 from uvicorn import Config, Server
 
-from settings import PING_DEVICE, UDP_PORT, DOCKER_HOST
+from settings import *
 
 SERVICE_NAME = "slam"
 
@@ -132,7 +132,8 @@ async def root() -> HTMLResponse:
 async def start_services():
     logger.info("Starting data processor.")
     asyncio.create_task(data_processor.receive_mavlink_data())
-    asyncio.create_task(ping_manager.get_ping_data())
+    asyncio.create_task(ping_manager.get_ping_data(
+        TRANSMIT_DURATION, SAMPLE_PERIOD, TRANSMIT_FREQUENCY))
 
     # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)

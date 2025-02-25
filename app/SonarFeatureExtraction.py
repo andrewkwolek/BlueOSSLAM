@@ -41,7 +41,7 @@ class SonarFeatureExtraction:
         # Meshgrid for remapping polar to Cartesian
         XX, YY = np.meshgrid(range(_cols), range(_rows))
         x = _res * (_rows - YY)
-        y = _res * (-_cols / 2.0 + XX + 0.5)
+        y = _res * (-_cols / 2.0 + XX + 0.5) + 0.75
         b = np.arctan2(x, y)
         r = np.sqrt(x ** 2 + y ** 2)
 
