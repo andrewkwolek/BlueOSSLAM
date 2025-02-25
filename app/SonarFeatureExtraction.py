@@ -30,6 +30,7 @@ class SonarFeatureExtraction:
         else:
             bearing_range = bearings[-1] - bearings[0]
         _width = np.sin(np.radians(bearing_range)) * _height
+        logger.info(f"Width {_width}")
         _cols = int(np.ceil(_width / _res))
 
         bearings = np.radians(bearings)
@@ -41,6 +42,7 @@ class SonarFeatureExtraction:
         XX, YY = np.meshgrid(range(_cols), range(_rows))
         x = _res * (_rows - YY)
         y = _res * (-_cols / 2.0 + XX + 0.5)
+        # b = np.arctan2(y, x)
         b = np.clip(np.arctan2(y, x), np.radians(
             bearings[0]), np.radians(bearings[-1]))
         r = np.sqrt(x ** 2 + y ** 2)
@@ -50,8 +52,8 @@ class SonarFeatureExtraction:
 
         logger.debug(
             f"map_x shape: {self.map_x.shape}, map_y shape: {self.map_y.shape}")
-        logger.debug(f"XX shape: {XX.shape}, YY shape: {YY.shape}")
-        logger.debug(f"X values: {self.map_x}")
+        logger.debug(f"X values (first 10): {self.map_x.ravel()[:10]}")
+        logger.debug(f"Y values (first 10): {self.map_y.ravel()[:10]}")
 
     async def extract_features(self, sonar_data, bearings, range_resolution):
         '''Process sonar data and extract features using CFAR'''
@@ -63,6 +65,10 @@ class SonarFeatureExtraction:
         # CFAR Detection
         peaks = self.detector.detect(img, self.alg)
         peaks &= img > self.threshold  # Apply additional thresholding if necessary
+
+        # Number of peaks detected
+        logger.debug(f"Peaks detected: {np.sum(peaks)}")
+        logger.debug(f"Peaks matrix shape: {peaks.shape}")
 
         logger.debug(
             f"map_x shape: {self.map_x.shape}, map_y shape: {self.map_y.shape}")
@@ -80,4 +86,5 @@ class SonarFeatureExtraction:
              * self.map_y.max()) + self.map_y.max()
 
         points = np.column_stack((y, x))
+        logger.debug(f"Cartesian coordinates (first 10): {points[:10]}")
         return points  # Point cloud in Cartesian coordinates

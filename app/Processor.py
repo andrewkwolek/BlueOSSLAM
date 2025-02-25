@@ -45,7 +45,7 @@ class Processor:
     def __init__(self):
         self.data_manager = DataManager()
 
-        self.mav = mavutil.mavlink_connection('udpin:0.0.0.0:14550')
+        self.mav = mavutil.mavlink_connection('udpin:0.0.0.0:14555')
         logger.info("Mavlink connection established.")
 
         self.imu_buffer = SensorBuffer(10, MavlinkMessage.RAW_IMU)
