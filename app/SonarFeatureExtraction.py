@@ -42,9 +42,7 @@ class SonarFeatureExtraction:
         XX, YY = np.meshgrid(range(_cols), range(_rows))
         x = _res * (_rows - YY)
         y = _res * (-_cols / 2.0 + XX + 0.5)
-        # b = np.arctan2(y, x)
-        b = np.clip(np.arctan2(y, x), np.radians(
-            bearings[0]), np.radians(bearings[-1]))
+        b = np.arctan2(x, y)
         r = np.sqrt(x ** 2 + y ** 2)
 
         self.map_y = np.asarray(r / _res, dtype=np.float32)
@@ -84,6 +82,10 @@ class SonarFeatureExtraction:
              ((x / float(self.map_x.shape[1] / 2)) * (self.map_y.max() / 2)))
         y = (-1 * (locs[:, 0] / float(self.map_y.shape[0]))
              * self.map_y.max()) + self.map_y.max()
+
+        # Scale values back down
+        x *= range_resolution
+        y *= range_resolution
 
         points = np.column_stack((y, x))
         logger.debug(f"Cartesian coordinates (first 10): {points[:10]}")

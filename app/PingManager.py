@@ -105,6 +105,7 @@ class PingManager:
                 step = 372
                 self.current_scan = np.array(self.data_mat).T
                 logger.debug(f"Angles: {len(self.angles)}")
+                logger.debug(f"Num ranges: {len(self.current_scan)}")
                 self.features = await self.feature_extractor.extract_features(self.current_scan, self.angles, 1481*0.000002/2)
                 self.data_mat = []
                 self.angles = []
