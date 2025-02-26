@@ -6,7 +6,7 @@ from brping import Ping360
 from brping import definitions
 from loguru import logger
 from dataclasses import dataclass
-from SonarFeatureExtraction import SonarFeatureExtraction
+from .SonarFeatureExtraction import SonarFeatureExtraction
 
 
 class PingManager:
@@ -41,6 +41,7 @@ class PingManager:
     def register_scan_update_callback(self, callback: Callable[[np.ndarray], None]):
         """Register a callback function to be called when current_scan is updated."""
         self._on_scan_updated_callback = callback
+        logger.info("Sonar callback received.")
 
     async def get_ping_data(self, transmit_duration, sample_period, transmit_frequency):
         # Print the scanning head angle

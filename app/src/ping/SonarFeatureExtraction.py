@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 from scipy.interpolate import interp1d
-from CFAR import CFAR
+from .CFAR import CFAR
 from loguru import logger
 
 
@@ -14,7 +14,6 @@ class SonarFeatureExtraction:
         self.alg = alg
         self.threshold = threshold
         self.resolution = resolution
-        # Use your CFAR implementation
         self.detector = CFAR(self.Ntc, self.Ngc, self.Pfa)
         self.map_x = None
         self.map_y = None
@@ -47,11 +46,6 @@ class SonarFeatureExtraction:
 
         self.map_y = np.asarray(r / _res, dtype=np.float32)
         self.map_x = np.asarray(f_bearings(b), dtype=np.float32)
-
-        logger.debug(
-            f"map_x shape: {self.map_x.shape}, map_y shape: {self.map_y.shape}")
-        logger.debug(f"X values (first 10): {self.map_x.ravel()[:10]}")
-        logger.debug(f"Y values (first 10): {self.map_y.ravel()[:10]}")
 
     async def extract_features(self, sonar_data, bearings, range_resolution):
         '''Process sonar data and extract features using CFAR'''

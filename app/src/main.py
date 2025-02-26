@@ -33,34 +33,6 @@ data_processor = Processor()
 ping_manager = PingManager(device=None, baudrate=115200, udp=UDP_PORT)
 
 
-@app.get("/gps")
-@version(1, 0)
-async def get_gps_data() -> Any:
-    logger.debug("Fetching GPS data.")
-    return await data_processor.data_manager.get_gps_data()
-
-
-@app.get("/imu")
-@version(1, 0)
-async def get_gps_data() -> Any:
-    logger.debug("Fetching IMU data.")
-    return await data_processor.data_manager.get_imu_data()
-
-
-@app.get("/attitude")
-@version(1, 0)
-async def get_gps_data() -> Any:
-    logger.debug("Fetching attitude data.")
-    return await data_processor.data_manager.get_attitude_data()
-
-
-@app.get("/ping")
-@version(1, 0)
-async def get_ping_data() -> Any:
-    logger.debug("Fetching ping data.")
-    return await data_processor.ping_manager.get_ping_data()
-
-
 @app.post("/start_recording")
 @version(1, 0)
 async def start() -> Any:
