@@ -26,7 +26,9 @@ RUN if [ "$(dpkg --print-architecture)" = "arm64" ]; then \
 
 # Install Python dependencies
 COPY app /app
-RUN python -m pip install /app --extra-index-url https://www.piwheels.org/simple
+WORKDIR /app
+
+RUN python -m pip install . --extra-index-url https://www.piwheels.org/simple
 
 RUN mkdir -p /app/slam_data
 
