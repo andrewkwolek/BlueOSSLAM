@@ -3,8 +3,8 @@ from collections import deque
 from loguru import logger
 from pymavlink import mavutil
 
-from PingManager import PingManager
-from DataManager import DataManager
+from ping.PingManager import PingManager
+from mavlink.DataManager import DataManager
 
 from typedefs import MavlinkMessage
 

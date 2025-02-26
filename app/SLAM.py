@@ -3,7 +3,7 @@ import numpy as np
 
 
 from Processor import Processor
-from PingManager import PingManager
+from ping.PingManager import PingManager
 
 
 class SLAM:

@@ -15,7 +15,7 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
 from Processor import Processor
-from PingManager import PingManager
+from ping.PingManager import PingManager
 from uvicorn import Config, Server
 
 from settings import *
