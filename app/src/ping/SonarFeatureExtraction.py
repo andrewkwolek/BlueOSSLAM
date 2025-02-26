@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 from scipy.interpolate import interp1d
-from .CFAR import CFAR
+from .CFAR import CFAR  # Your CFAR implementation
 from loguru import logger
 
 
@@ -14,6 +14,7 @@ class SonarFeatureExtraction:
         self.alg = alg
         self.threshold = threshold
         self.resolution = resolution
+        # Use your CFAR implementation
         self.detector = CFAR(self.Ntc, self.Ngc, self.Pfa)
         self.map_x = None
         self.map_y = None
@@ -40,7 +41,7 @@ class SonarFeatureExtraction:
         # Meshgrid for remapping polar to Cartesian
         XX, YY = np.meshgrid(range(_cols), range(_rows))
         x = _res * (_rows - YY)
-        y = _res * (-_cols / 2.0 + XX + 0.5) + 0.75
+        y = _res * (-_cols / 2.0 + XX + 0.5)
         b = np.arctan2(x, y)
         r = np.sqrt(x ** 2 + y ** 2)
 

@@ -105,7 +105,10 @@ async def start_services():
     logger.info("Starting data processor.")
     asyncio.create_task(data_processor.receive_mavlink_data())
     asyncio.create_task(ping_manager.get_ping_data(
-        TRANSMIT_DURATION, SAMPLE_PERIOD, TRANSMIT_FREQUENCY))
+        transmit_duration=TRANSMIT_DURATION,
+        sample_period=SAMPLE_PERIOD,
+        transmit_frequency=TRANSMIT_FREQUENCY
+    ))
 
     # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)

@@ -8,6 +8,8 @@ from loguru import logger
 from dataclasses import dataclass
 from .SonarFeatureExtraction import SonarFeatureExtraction
 
+from settings import WATER_SOS
+
 
 class PingManager:
     def __init__(self, device, baudrate, udp):
@@ -82,7 +84,8 @@ class PingManager:
                 if self._on_scan_updated_callback:
                     self._on_scan_updated_callback(self.current_scan)
 
-                self.features = await self.feature_extractor.extract_features(self.current_scan, self.angles, 1481*0.000002/2)
+                resolution = (WATER_SOS*sample_period*25e-9)/2
+                self.features = await self.feature_extractor.extract_features(self.current_scan, self.angles, resolution)
                 self.data_mat = []
                 self.angles = []
             else:
