@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Callable
 import asyncio
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,41 +7,6 @@ from brping import definitions
 from loguru import logger
 from dataclasses import dataclass
 from SonarFeatureExtraction import SonarFeatureExtraction
-import io
-
-
-@dataclass
-class SonarPoint:
-    x: float
-    y: float
-    z: float
-    intensity: float
-    timestamp: float
-
-
-@dataclass
-class Ping360Data:
-    mode: int
-    gain_setting: int
-    angle: int  # in gradians
-    transmit_duration: int  # microseconds
-    sample_period: int  # 25ns increments
-    transmit_frequency: int  # kHz
-    number_of_samples: int
-    data: List[int]  # strength values
-
-    @classmethod
-    def from_dict(cls, data: Dict) -> 'Ping360Data':
-        return cls(
-            mode=data['mode'],
-            gain_setting=data['gain_setting'],
-            angle=data['angle'],
-            transmit_duration=data['transmit_duration'],
-            sample_period=data['sample_period'],
-            transmit_frequency=data['transmit_frequency'],
-            number_of_samples=data['number_of_samples'],
-            data=data['data']
-        )
 
 
 class PingManager:
@@ -68,6 +33,14 @@ class PingManager:
 
         self.feature_extractor = SonarFeatureExtraction()
         self.features = None
+
+        # Callback function for when current_scan is updated
+        self._on_scan_updated_callback: Optional[Callable[[
+            np.ndarray], None]] = None
+
+    def register_scan_update_callback(self, callback: Callable[[np.ndarray], None]):
+        """Register a callback function to be called when current_scan is updated."""
+        self._on_scan_updated_callback = callback
 
     async def get_ping_data(self, transmit_duration, sample_period, transmit_frequency):
         # Print the scanning head angle
@@ -104,8 +77,10 @@ class PingManager:
             if step == 27:
                 step = 372
                 self.current_scan = np.array(self.data_mat).T
-                logger.debug(f"Angles: {len(self.angles)}")
-                logger.debug(f"Num ranges: {len(self.current_scan)}")
+
+                if self._on_scan_updated_callback:
+                    self._on_scan_updated_callback(self.current_scan)
+
                 self.features = await self.feature_extractor.extract_features(self.current_scan, self.angles, 1481*0.000002/2)
                 self.data_mat = []
                 self.angles = []

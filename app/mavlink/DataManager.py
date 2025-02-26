@@ -21,7 +21,7 @@ class DataManager:
             logger.warning("Already recording!")
             return
 
-        self.data.clear()
+        self.record_data.clear()
         self.is_recording = True
         logger.info("Recording started.")
 
