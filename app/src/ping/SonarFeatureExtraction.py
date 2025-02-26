@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 from scipy.interpolate import interp1d
-from CFAR import CFAR  # Your CFAR implementation
+from CFAR import CFAR
 from loguru import logger
 
 
