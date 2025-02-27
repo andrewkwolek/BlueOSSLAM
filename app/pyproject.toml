@@ -24,5 +24,6 @@ dependencies = [
     "PyGObject == 3.50.0",
     "numpy == 2.0.2",
     "matplotlib == 3.9.4",
-    "scipy == 1.13.1"
+    "scipy == 1.13.1",
+    "h5py == 3.13.0"
 ]

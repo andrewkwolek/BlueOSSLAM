@@ -19,6 +19,8 @@ class SonarFeatureExtraction:
         self.map_x = None
         self.map_y = None
 
+        self.cfar_polar = None
+
     async def generate_map_xy(self, bearings, range_resolution, num_ranges):
         '''Generate a mesh grid map for remapping sonar image from polar to Cartesian'''
         _res = range_resolution
@@ -59,12 +61,11 @@ class SonarFeatureExtraction:
         peaks = self.detector.detect(img, self.alg)
         peaks &= img > self.threshold  # Apply additional thresholding if necessary
 
+        self.cfar_polar = peaks
+
         # Number of peaks detected
         logger.debug(f"Peaks detected: {np.sum(peaks)}")
         logger.debug(f"Peaks matrix shape: {peaks.shape}")
-
-        logger.debug(
-            f"map_x shape: {self.map_x.shape}, map_y shape: {self.map_y.shape}")
 
         # Convert to Cartesian coordinates
         peaks_cartesian = cv2.remap(
@@ -83,5 +84,7 @@ class SonarFeatureExtraction:
         y *= range_resolution
 
         points = np.column_stack((y, x))
-        logger.debug(f"Cartesian coordinates (first 10): {points[:10]}")
         return points  # Point cloud in Cartesian coordinates
+
+    def get_cfar(self):
+        return self.cfar_polar

@@ -32,8 +32,10 @@ class PingManager:
         self.current_scan = None
         self.data_mat = []
         self.angles = []
+        self.current_angles = None
 
-        self.feature_extractor = SonarFeatureExtraction()
+        self.feature_extractor = SonarFeatureExtraction(
+            Ntc=80, Ngc=20, Pfa=0.001)
         self.features = None
 
         # Callback function for when current_scan is updated
@@ -43,7 +45,7 @@ class PingManager:
     def register_scan_update_callback(self, callback: Callable[[np.ndarray], None]):
         """Register a callback function to be called when current_scan is updated."""
         self._on_scan_updated_callback = callback
-        logger.info("Sonar callback received.")
+        logger.info("Sonar callback registered.")
 
     async def get_ping_data(self, transmit_duration, sample_period, transmit_frequency):
         # Print the scanning head angle
@@ -73,13 +75,13 @@ class PingManager:
                     "number_of_samples": m.number_of_samples,
                     "data": np.frombuffer(m.data, dtype=np.uint8),
                 })
-                logger.info(f"Angle: {self.data['angle']}")
                 self.angles.append(self.data['angle'])
                 self.data_mat.append(np.array(self.data['data']))
 
             if step == 27:
                 step = 372
                 self.current_scan = np.array(self.data_mat).T
+                self.current_angles = self.angles
 
                 if self._on_scan_updated_callback:
                     self._on_scan_updated_callback(self.current_scan)
@@ -106,3 +108,9 @@ class PingManager:
 
     def get_point_cloud(self):
         return self.features
+
+    def get_current_angles(self):
+        return self.current_angles
+
+    def get_cfar_polar(self):
+        return self.feature_extractor.get_cfar()

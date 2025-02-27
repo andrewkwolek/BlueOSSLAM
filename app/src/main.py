@@ -4,6 +4,7 @@ import io
 from fastapi.responses import StreamingResponse
 import asyncio
 import os
+import h5py
 import sys
 import numpy as np
 from loguru import logger
@@ -16,6 +17,7 @@ from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
 from Processor import Processor
 from ping.PingManager import PingManager
+from ping.ScanRecorder import SonarRecorder
 from uvicorn import Config, Server
 
 from settings import *
@@ -31,6 +33,10 @@ app = FastAPI(
 logger.info(f"Starting {SERVICE_NAME}")
 data_processor = Processor()
 ping_manager = PingManager(device=None, baudrate=115200, udp=UDP_PORT)
+scan_recorder = SonarRecorder()
+
+logger.info("Register sonar callback")
+ping_manager.register_scan_update_callback(scan_recorder.save_scan)
 
 
 @app.post("/start_recording")
@@ -48,7 +54,15 @@ async def stop() -> Any:
     return {'message': 'Recording stopped.'}
 
 
-# Assuming other imports and initializations are here
+@app.post("/record_ping")
+@version(1, 0)
+async def toggle_scan_recording():
+    if scan_recorder.file is None:
+        scan_recorder.start_recording()
+    else:
+        scan_recorder.stop_recording()
+
+    return {"status": "success"}
 
 
 @app.get("/pointcloud")
@@ -79,6 +93,144 @@ async def get_point_cloud():
     # Save plot to a BytesIO object
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
+    buf.seek(0)
+    plt.close()
+
+    # Serve the image as a streaming response
+    return StreamingResponse(buf, media_type="image/png")
+
+
+@app.get("/sonar_scan")
+@version(1, 0)
+async def get_scan_data():
+    scan_data = ping_manager.get_data()
+    angles = ping_manager.get_current_angles()
+
+    if angles is None:
+        logger.warning("Scan incomplete!")
+        return
+
+    azimuths = np.array(angles)
+
+    # Range resolution calculation
+    resolution = (WATER_SOS * SAMPLE_PERIOD * 25e-9) / 2
+    num_ranges = scan_data.shape[0]
+    num_azimuths = scan_data.shape[1]  # Make sure to get the correct dimension
+
+    logger.info(f"Num ranges: {num_ranges}")
+    logger.info(f"Num azimuths: {num_azimuths}")
+
+    # Define ranges based on resolution
+    ranges = np.arange(0, num_ranges * resolution, resolution)
+
+    # Power spectrum (apply log transform for better visualization)
+    # Add small value to avoid log(0)
+    range_azimuth_psd = 10 * np.log10(scan_data + 1e-10)
+
+    # Plot the power spectrum
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+
+    # Use extent to properly map the image to correct coordinates
+    extent = [0, num_azimuths-1, ranges[0], ranges[-1]]
+    im = ax.imshow(range_azimuth_psd, cmap='viridis',
+                   aspect='auto', extent=extent, origin='lower')
+
+    fig.suptitle("Range-Azimuth Strength Spectrum", fontsize=14)
+    ax.set_xlabel("Azimuth Angle (degrees)")
+    ax.set_ylabel("Range (meters)")
+
+    # Add a colorbar
+    # cbar = fig.colorbar(im, ax=ax)
+    # cbar.set_label('Strength')
+
+    # Set evenly spaced range ticks
+    num_range_ticks = 10
+    range_tick_labels = np.linspace(
+        ranges[0], ranges[-1], num_range_ticks).round(2)
+    ax.set_yticks(range_tick_labels)
+
+    # Set evenly spaced azimuth ticks that correspond to actual column indices
+    num_azimuth_ticks = min(9, num_azimuths)
+    azimuth_indices = np.linspace(
+        0, num_azimuths-1, num_azimuth_ticks).astype(int)
+    azimuth_tick_labels = np.round(azimuths[azimuth_indices], 1)
+    ax.set_xticks(azimuth_indices)
+    ax.set_xticklabels(azimuth_tick_labels)
+
+    ax.grid(True, linestyle='--', alpha=0.7)
+
+    # Save plot to a BytesIO object
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    buf.seek(0)
+    plt.close()
+
+    # Serve the image as a streaming response
+    return StreamingResponse(buf, media_type="image/png")
+
+
+@app.get("/cfar_scan")
+@version(1, 0)
+async def get_scan_data():
+    scan_data = ping_manager.get_cfar_polar()
+    angles = ping_manager.get_current_angles()
+
+    if angles is None:
+        logger.warning("Scan incomplete!")
+        return
+
+    azimuths = np.array(angles)
+
+    # Range resolution calculation
+    resolution = (WATER_SOS * SAMPLE_PERIOD * 25e-9) / 2
+    num_ranges = scan_data.shape[0]
+    num_azimuths = scan_data.shape[1]  # Make sure to get the correct dimension
+
+    logger.info(f"Num ranges: {num_ranges}")
+    logger.info(f"Num azimuths: {num_azimuths}")
+
+    # Define ranges based on resolution
+    ranges = np.arange(0, num_ranges * resolution, resolution)
+
+    # Power spectrum (apply log transform for better visualization)
+    # Add small value to avoid log(0)
+    range_azimuth_psd = 10 * np.log10(scan_data + 1e-10)
+
+    # Plot the power spectrum
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+
+    # Use extent to properly map the image to correct coordinates
+    extent = [0, num_azimuths-1, ranges[0], ranges[-1]]
+    im = ax.imshow(range_azimuth_psd, cmap='viridis',
+                   aspect='auto', extent=extent, origin='lower')
+
+    fig.suptitle("CFAR Strength Spectrum", fontsize=14)
+    ax.set_xlabel("Azimuth Angle (degrees)")
+    ax.set_ylabel("Range (meters)")
+
+    # Add a colorbar
+    # cbar = fig.colorbar(im, ax=ax)
+    # cbar.set_label('Strength')
+
+    # Set evenly spaced range ticks
+    num_range_ticks = 10
+    range_tick_labels = np.linspace(
+        ranges[0], ranges[-1], num_range_ticks).round(2)
+    ax.set_yticks(range_tick_labels)
+
+    # Set evenly spaced azimuth ticks that correspond to actual column indices
+    num_azimuth_ticks = min(9, num_azimuths)
+    azimuth_indices = np.linspace(
+        0, num_azimuths-1, num_azimuth_ticks).astype(int)
+    azimuth_tick_labels = np.round(azimuths[azimuth_indices], 1)
+    ax.set_xticks(azimuth_indices)
+    ax.set_xticklabels(azimuth_tick_labels)
+
+    ax.grid(True, linestyle='--', alpha=0.7)
+
+    # Save plot to a BytesIO object
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
     buf.seek(0)
     plt.close()
 

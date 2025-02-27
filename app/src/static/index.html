@@ -4,9 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SLAM Point Cloud</title>
+    <style>
+        /* Position the button on the right side of the screen */
+        .toggle-button {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .toggle-button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
     <h1>SLAM Sonar Point Cloud</h1>
+    <img src="/v1.0/sonar_scan" alt="Sonar Strength Spectrum">
+    <img src="/v1.0/cfar_scan" alt="CFAR Strength Spectrum">
     <img src="/v1.0/pointcloud" alt="Sonar Point Cloud">
+
+    <!-- Button to toggle recording -->
+    <button class="toggle-button" id="toggleRecordingButton">Start Recording</button>
+
+    <script>
+        // Get reference to the button
+        const button = document.getElementById('toggleRecordingButton');
+
+        // Function to toggle recording
+        async function toggleRecording() {
+            try {
+                const response = await fetch('/v1.0/record_ping', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                if (response.ok) {
+                    // Change button text based on recording status
+                    if (button.innerText === 'Start Recording') {
+                        button.innerText = 'Stop Recording';
+                    } else {
+                        button.innerText = 'Start Recording';
+                    }
+                } else {
+                    console.error('Error toggling recording');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Add event listener to the button to toggle recording on click
+        button.addEventListener('click', toggleRecording);
+    </script>
 </body>
 </html>
