@@ -10,7 +10,7 @@ from loguru import logger
 from dataclasses import dataclass
 from .SonarFeatureExtraction import SonarFeatureExtraction
 
-from settings import WATER_SOS, SAMPLE_PERIOD
+from settings import WATER_SOS, SAMPLE_PERIOD, Ntc, Ngc, Pfa
 
 
 class PingManager:
@@ -38,7 +38,7 @@ class PingManager:
             self.current_angles = None
 
         self.feature_extractor = SonarFeatureExtraction(
-            Ntc=80, Ngc=20, Pfa=0.001)
+            Ntc=Ntc, Ngc=Ngc, Pfa=Pfa)
         self.features = None
 
         self.costmap = None
