@@ -21,6 +21,28 @@ class SonarFeatureExtraction:
 
         self.cfar_polar = None
 
+    async def create_costmap_in_cartesian(self, sonar_data, bearings, range_resolution):
+        '''Create a mesh grid of zeros in Cartesian coordinates from sonar data in polar coordinates'''
+        _res = range_resolution
+        _height = len(sonar_data) * _res
+
+        if bearings[-1] < bearings[0]:
+            bearing_range = 360 - (bearings[0] - bearings[-1])
+        else:
+            bearing_range = bearings[-1] - bearings[0]
+        _width = np.sin(np.radians(bearing_range)) * _height
+        logger.info(f"Width {_width}")
+
+        # Create a meshgrid for x and y axes based on the range values
+        x_range = np.arange(-_width/2, _width/2, _res)
+        y_range = np.arange(0, _height, _res)
+
+        X, Y = np.meshgrid(x_range, y_range)
+
+        costmap = np.zeros_like(X, dtype=np.float32)
+
+        return costmap, X, Y
+
     async def extract_features(self, sonar_data, bearings, range_resolution):
         '''Process sonar data and extract features using CFAR'''
         img = sonar_data
@@ -74,7 +96,22 @@ class SonarFeatureExtraction:
         if not points:
             return np.empty((0, 2))
 
-        return np.array(points)  # Point cloud in Cartesian coordinates
+        costmap, X, Y = await self.create_costmap_in_cartesian(
+            sonar_data, bearings, range_resolution)
+
+        for point in points:
+            # Convert polar (r, theta) to Cartesian (x, y)
+            x = point[1]  # X-coordinate in meters
+            y = point[0]  # Y-coordinate in meters
+
+            # Find the closest indices on the mesh grid
+            x_idx = np.abs(X[0] - x).argmin()  # Find closest X index
+            y_idx = np.abs(Y[:, 0] - y).argmin()  # Find closest Y index
+
+            # Mark the detected point on the costmap
+            costmap[y_idx, x_idx] = 1  # Or increment based on detection count
+
+        return costmap, X, Y
 
     def get_cfar(self):
         return self.cfar_polar

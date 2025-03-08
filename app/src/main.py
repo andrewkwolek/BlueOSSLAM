@@ -32,7 +32,8 @@ app = FastAPI(
 
 logger.info(f"Starting {SERVICE_NAME}")
 data_processor = Processor()
-ping_manager = PingManager(device=None, baudrate=115200, udp=UDP_PORT)
+ping_manager = PingManager(
+    device=None, baudrate=115200, udp=UDP_PORT, live=LIVE_SONAR)
 scan_recorder = SonarRecorder()
 
 logger.info("Register sonar callback")
@@ -65,25 +66,21 @@ async def toggle_scan_recording():
     return {"status": "success"}
 
 
-@app.get("/pointcloud")
+@app.get("/costmap")
 @version(1, 0)
-async def get_point_cloud():
+async def get_costmap():
     # Fetch the point cloud data from the sonar class
-    point_cloud = ping_manager.get_point_cloud()
+    costmap, x, y = ping_manager.get_costmap()
 
-    if point_cloud is None or len(point_cloud) == 0:
+    if costmap is None or len(costmap) == 0:
         logger.warning("No point cloud data available.")
         return {"message": "No point cloud data available yet."}
 
-    logger.debug(f"Point cloud shape: {point_cloud.shape}")
-
-    # Assuming point_cloud is a NumPy array with shape (N, 2) for (y, x) coordinates
-    y = point_cloud[:, 0]
-    x = point_cloud[:, 1]
+    logger.debug(f"Point cloud shape: {costmap.shape}")
 
     # Create a plot
     plt.figure(figsize=(8, 8))
-    plt.scatter(x, y, c='b', marker='.')
+    plt.pcolormesh(x, y, costmap)
     plt.title('Sonar Point Cloud')
     plt.xlabel('X Coordinate (m)')
     plt.ylabel('Y Coordinate (m)')
@@ -171,7 +168,7 @@ async def get_scan_data():
 
 @app.get("/cfar_scan")
 @version(1, 0)
-async def get_scan_data():
+async def get_cfar_data():
     scan_data = ping_manager.get_cfar_polar()
     angles = ping_manager.get_current_angles()
 
@@ -256,11 +253,15 @@ async def root() -> HTMLResponse:
 async def start_services():
     logger.info("Starting data processor.")
     asyncio.create_task(data_processor.receive_mavlink_data())
-    asyncio.create_task(ping_manager.get_ping_data(
-        transmit_duration=TRANSMIT_DURATION,
-        sample_period=SAMPLE_PERIOD,
-        transmit_frequency=TRANSMIT_FREQUENCY
-    ))
+    if LIVE_SONAR:
+        asyncio.create_task(ping_manager.get_ping_data(
+            transmit_duration=TRANSMIT_DURATION,
+            sample_period=SAMPLE_PERIOD,
+            transmit_frequency=TRANSMIT_FREQUENCY
+        ))
+    else:
+        asyncio.create_task(ping_manager.read_recording(
+            "sonar_data/sonar_data_20250228_044931.h5"))
 
     # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)

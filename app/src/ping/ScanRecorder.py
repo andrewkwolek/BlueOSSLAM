@@ -22,7 +22,7 @@ class SonarRecorder:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             self.filename = f"sonar_data_{timestamp}_%03d.h5"
             self.filepath = os.path.join(SONAR_FILEPATH, self.filename)
-            self.file = h5py.File(self.filename, 'a')
+            self.file = h5py.File(self.filepath, 'a')
             self.is_recording = True
 
     def stop_recording(self):
