@@ -18,6 +18,6 @@ TRANSMIT_FREQUENCY = 750
 
 
 # CFAR settings
-Ntc = 40
-Ngc = 10
-Pfa = 1e-2
+Ntc = 120
+Ngc = 20
+Pfa = 0.0001

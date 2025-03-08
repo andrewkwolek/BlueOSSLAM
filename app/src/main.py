@@ -31,7 +31,7 @@ app = FastAPI(
 )
 
 logger.info(f"Starting {SERVICE_NAME}")
-data_processor = Processor()
+# data_processor = Processor()
 ping_manager = PingManager(
     device=None, baudrate=115200, udp=UDP_PORT, live=LIVE_SONAR)
 scan_recorder = SonarRecorder()
@@ -40,19 +40,19 @@ logger.info("Register sonar callback")
 ping_manager.register_scan_update_callback(scan_recorder.save_scan)
 
 
-@app.post("/start_recording")
-@version(1, 0)
-async def start() -> Any:
-    await data_processor.data_manager.start_recording()
-    asyncio.create_task(data_processor.data_manager.record_data())
-    return {'message': 'Recording started.'}
+# @app.post("/start_recording")
+# @version(1, 0)
+# async def start() -> Any:
+#     await data_processor.data_manager.start_recording()
+#     asyncio.create_task(data_processor.data_manager.record_data())
+#     return {'message': 'Recording started.'}
 
 
-@app.post("/stop_recording")
-@version(1, 0)
-async def stop() -> Any:
-    await data_processor.data_manager.stop_recording()
-    return {'message': 'Recording stopped.'}
+# @app.post("/stop_recording")
+# @version(1, 0)
+# async def stop() -> Any:
+#     await data_processor.data_manager.stop_recording()
+#     return {'message': 'Recording stopped.'}
 
 
 @app.post("/record_ping")
@@ -252,7 +252,7 @@ async def root() -> HTMLResponse:
 
 async def start_services():
     logger.info("Starting data processor.")
-    asyncio.create_task(data_processor.receive_mavlink_data())
+    # asyncio.create_task(data_processor.receive_mavlink_data())
     if LIVE_SONAR:
         asyncio.create_task(ping_manager.get_ping_data(
             transmit_duration=TRANSMIT_DURATION,
@@ -261,7 +261,7 @@ async def start_services():
         ))
     else:
         asyncio.create_task(ping_manager.read_recording(
-            "sonar_data/sonar_data_20250228_044931.h5"))
+            "/app/sonar_data/sonar2.h5"))
 
     # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)

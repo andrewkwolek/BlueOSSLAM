@@ -36,6 +36,12 @@ class PingManager:
             self.data_mat = []
             self.angles = []
             self.current_angles = None
+        else:
+            self.angles = [334.8, 335.7, 336.6, 337.5, 338.4, 339.3, 340.2, 341.1, 342,  342.9, 343.8, 344.7,
+                           345.6, 346.5, 347.4, 348.3, 349.2, 350.1, 351,  351.9, 352.8, 353.7, 354.6, 355.5,
+                           356.4, 357.3, 358.2, 359.1,   0,    0.9,   1.8,   2.7,   3.6,   4.5,   5.4,   6.3,
+                           7.2,   8.1,   9,    9.9,  10.8,  11.7,  12.6,  13.5,  14.4,  15.3,  16.2,  17.1,
+                           18,   18.9,  19.8,  20.7,  21.6,  22.5,  23.4,  24.3]
 
         self.feature_extractor = SonarFeatureExtraction(
             Ntc=Ntc, Ngc=Ngc, Pfa=Pfa)
@@ -109,23 +115,16 @@ class PingManager:
                 datasets = list(file.keys())
                 logger.info(f"Found scans: {datasets}")
 
-                # Optionally, read and return data for a specific scan
-                # Example: Read the first scan in the file
                 for dataset in datasets:
                     if datasets:
-                        scan = datasets[dataset]
-                        self.current_scan = file[scan][:]
-                        logger.info(f"Loaded scan data from {scan}")
-                        self.angles = [334.8, 335.7, 336.6, 337.5, 338.4, 339.3, 340.2, 341.1, 342,  342.9, 343.8, 344.7,
-                                       345.6, 346.5, 347.4, 348.3, 349.2, 350.1, 351,  351.9, 352.8, 353.7, 354.6, 355.5,
-                                       356.4, 357.3, 358.2, 359.1,   0,    0.9,   1.8,   2.7,   3.6,   4.5,   5.4,   6.3,
-                                       7.2,   8.1,   9,    9.9,  10.8,  11.7,  12.6,  13.5,  14.4,  15.3,  16.2,  17.1,
-                                       18,   18.9,  19.8,  20.7,  21.6,  22.5,  23.4,  24.3]
+                        self.current_scan = file[dataset][:]
+                        logger.info(f"Loaded scan data from {dataset}")
                         resolution = (WATER_SOS*SAMPLE_PERIOD*25e-9)/2
+                        self.current_angles = self.angles
                         self.costmap, self.X, self.Y = await self.feature_extractor.extract_features(self.current_scan, self.angles, resolution)
                     else:
                         logger.warning("No scans found in file.")
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(15)
         else:
             logger.error(f"File {filename} does not exist.")
             return None
