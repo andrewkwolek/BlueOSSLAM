@@ -122,7 +122,7 @@ async def get_scan_data():
 
     # Power spectrum (apply log transform for better visualization)
     # Add small value to avoid log(0)
-    range_azimuth_psd = 10 * np.log10(scan_data + 1e-10)
+    range_azimuth_psd = scan_data
 
     # Plot the power spectrum
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
@@ -191,7 +191,7 @@ async def get_cfar_data():
 
     # Power spectrum (apply log transform for better visualization)
     # Add small value to avoid log(0)
-    range_azimuth_psd = 10 * np.log10(scan_data + 1e-10)
+    range_azimuth_psd = scan_data
 
     # Plot the power spectrum
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))

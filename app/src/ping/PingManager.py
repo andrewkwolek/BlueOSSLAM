@@ -1,13 +1,11 @@
-from typing import List, Dict, Optional, Callable
+from typing import Optional, Callable
 import asyncio
 import os
 import h5py
 import numpy as np
-import matplotlib.pyplot as plt
 from brping import Ping360
 from brping import definitions
 from loguru import logger
-from dataclasses import dataclass
 from .SonarFeatureExtraction import SonarFeatureExtraction
 
 from settings import WATER_SOS, SAMPLE_PERIOD, Ntc, Ngc, Pfa
@@ -36,6 +34,7 @@ class PingManager:
             self.data_mat = []
             self.angles = []
             self.current_angles = None
+
         else:
             self.angles = [334.8, 335.7, 336.6, 337.5, 338.4, 339.3, 340.2, 341.1, 342,  342.9, 343.8, 344.7,
                            345.6, 346.5, 347.4, 348.3, 349.2, 350.1, 351,  351.9, 352.8, 353.7, 354.6, 355.5,
@@ -71,7 +70,7 @@ class PingManager:
                 transmit_duration=transmit_duration,
                 sample_period=sample_period,
                 transmit_frequency=transmit_frequency,
-                number_of_samples=1024,
+                number_of_samples=1200,
                 transmit=1,
                 reserved=0
             )
@@ -90,6 +89,7 @@ class PingManager:
                 })
                 self.angles.append(self.data['angle'])
                 self.data_mat.append(np.array(self.data['data']))
+                print(self.data['data'])
 
             if step == 27:
                 step = 372
@@ -118,6 +118,7 @@ class PingManager:
                 for dataset in datasets:
                     if datasets:
                         self.current_scan = file[dataset][:]
+                        print(self.current_scan)
                         logger.info(f"Loaded scan data from {dataset}")
                         resolution = (WATER_SOS*SAMPLE_PERIOD*25e-9)/2
                         self.current_angles = self.angles
