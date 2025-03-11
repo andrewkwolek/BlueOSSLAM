@@ -21,21 +21,141 @@
         .toggle-button:hover {
             background-color: #45a049;
         }
+
+        /* Container for the images */
+        .plots-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Style for each plot */
+        .plot {
+            max-width: 100%;
+            width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            object-fit: contain;
+        }
+
+        /* Container for each plot section */
+        .plot-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Style for plot headings */
+        .plot-section h2 {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        /* Controls for refresh rate */
+        .controls {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .status {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
     </style>
 </head>
 <body>
-    <h1>SLAM Sonar Point Cloud</h1>
-    <img src="/v1.0/sonar_scan" alt="Sonar Strength Spectrum">
-    <img src="/v1.0/cfar_scan" alt="CFAR Strength Spectrum">
-    <img src="/v1.0/costmap" alt="Sonar Point Cloud">
+    <h1 style="margin-bottom: 10px; font-size: 24px;">SLAM Sonar Visualization</h1>
+    
+    <div class="controls">
+        <label for="refreshRate">Auto-refresh interval (seconds): </label>
+        <input type="number" id="refreshRate" min="1" max="60" value="3" step="1">
+        <button id="toggleRefresh">Start Auto-refresh</button>
+        <div class="status" id="refreshStatus">Auto-refresh is off</div>
+    </div>
+
+    <div class="plots-container">
+        <div class="plot-section">
+            <h2>Sonar Strength Spectrum</h2>
+            <img src="/v1.0/sonar_scan" alt="Sonar Strength Spectrum" class="plot" id="sonarScan">
+        </div>
+        
+        <div class="plot-section">
+            <h2>CFAR Strength Spectrum</h2>
+            <img src="/v1.0/cfar_scan" alt="CFAR Strength Spectrum" class="plot" id="cfarScan">
+        </div>
+        
+        <div class="plot-section">
+            <h2>Sonar Point Cloud</h2>
+            <img src="/v1.0/costmap" alt="Sonar Point Cloud" class="plot" id="costmap">
+        </div>
+    </div>
 
     <!-- Button to toggle recording -->
     <button class="toggle-button" id="toggleRecordingButton">Start Recording</button>
 
     <script>
-        // Get reference to the button
-        const button = document.getElementById('toggleRecordingButton');
-
+        // Get references to the elements
+        const sonarScanImg = document.getElementById('sonarScan');
+        const cfarScanImg = document.getElementById('cfarScan');
+        const costmapImg = document.getElementById('costmap');
+        const recordButton = document.getElementById('toggleRecordingButton');
+        const refreshRateInput = document.getElementById('refreshRate');
+        const toggleRefreshButton = document.getElementById('toggleRefresh');
+        const refreshStatus = document.getElementById('refreshStatus');
+        
+        // Variables to control auto-refresh
+        let autoRefreshInterval = null;
+        let isAutoRefreshing = false;
+        
+        // Function to add cache-busting parameter to prevent browser caching
+        function addCacheBuster(url) {
+            const timestamp = new Date().getTime();
+            return `${url}?t=${timestamp}`;
+        }
+        
+        // Function to refresh all images
+        function refreshPlots() {
+            sonarScanImg.src = addCacheBuster('/v1.0/sonar_scan');
+            cfarScanImg.src = addCacheBuster('/v1.0/cfar_scan');
+            costmapImg.src = addCacheBuster('/v1.0/costmap');
+        }
+        
+        // Function to toggle auto-refresh
+        function toggleAutoRefresh() {
+            if (isAutoRefreshing) {
+                // Stop auto-refresh
+                clearInterval(autoRefreshInterval);
+                toggleRefreshButton.textContent = 'Start Auto-refresh';
+                refreshStatus.textContent = 'Auto-refresh is off';
+                isAutoRefreshing = false;
+            } else {
+                // Start auto-refresh
+                const rate = parseInt(refreshRateInput.value, 10) * 1000; // Convert to milliseconds
+                autoRefreshInterval = setInterval(refreshPlots, rate);
+                toggleRefreshButton.textContent = 'Stop Auto-refresh';
+                refreshStatus.textContent = `Auto-refreshing every ${refreshRateInput.value} seconds`;
+                isAutoRefreshing = true;
+                
+                // Refresh immediately when enabled
+                refreshPlots();
+            }
+        }
+        
+        // Update refresh status when rate is changed
+        refreshRateInput.addEventListener('change', function() {
+            if (isAutoRefreshing) {
+                clearInterval(autoRefreshInterval);
+                const rate = parseInt(refreshRateInput.value, 10) * 1000;
+                autoRefreshInterval = setInterval(refreshPlots, rate);
+                refreshStatus.textContent = `Auto-refreshing every ${refreshRateInput.value} seconds`;
+            }
+        });
+        
         // Function to toggle recording
         async function toggleRecording() {
             try {
@@ -48,10 +168,10 @@
 
                 if (response.ok) {
                     // Change button text based on recording status
-                    if (button.innerText === 'Start Recording') {
-                        button.innerText = 'Stop Recording';
+                    if (recordButton.innerText === 'Start Recording') {
+                        recordButton.innerText = 'Stop Recording';
                     } else {
-                        button.innerText = 'Start Recording';
+                        recordButton.innerText = 'Start Recording';
                     }
                 } else {
                     console.error('Error toggling recording');
@@ -61,8 +181,12 @@
             }
         }
 
-        // Add event listener to the button to toggle recording on click
-        button.addEventListener('click', toggleRecording);
+        // Add event listeners
+        toggleRefreshButton.addEventListener('click', toggleAutoRefresh);
+        recordButton.addEventListener('click', toggleRecording);
+        
+        // Initial refresh when page loads
+        refreshPlots();
     </script>
 </body>
 </html>
