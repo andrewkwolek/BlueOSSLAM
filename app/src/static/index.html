@@ -129,16 +129,20 @@
         <div class="cfar-controls">
             <h3>CFAR Parameters</h3>
             <div class="slider-container">
-                <label for="ntcSlider">Ntc (Training Cells): <span id="ntcValue">40</span></label>
+                <label for="ntcSlider">Ntc (Training Cells): <span id="ntcValue">66</span></label>
                 <input type="range" id="ntcSlider" min="2" max="400" value="40" step="2">
             </div>
             <div class="slider-container">
-                <label for="ngcSlider">Ngc (Guard Cells): <span id="ngcValue">10</span></label>
+                <label for="ngcSlider">Ngc (Guard Cells): <span id="ngcValue">70</span></label>
                 <input type="range" id="ngcSlider" min="2" max="100" value="10" step="2">
             </div>
             <div class="slider-container">
-                <label for="pfaSlider">Pfa (False Alarm Rate): <span id="pfaValue">0.01</span></label>
-                <input type="range" id="pfaSlider" min="0.0001" max="0.1" value="0.01" step="0.001">
+                <label for="pfaSlider">Pfa (False Alarm Rate): <span id="pfaValue">0.005</span></label>
+                <input type="range" id="pfaSlider" min="0.0001" max="0.1" value="0.01" step="0.0001">
+            </div>
+            <div class="slider-container">
+                <label for="thresholdSlider">Strength Threshold: <span id="thresholdValue">30</span></label>
+                <input type="range" id="thresholdSlider" min="0" max="255" value="30" step="1">
             </div>
             <button id="applyButton">Apply Parameters</button>
             <div id="parameterStatus" class="status"></div>
@@ -259,9 +263,11 @@
         const ntcSlider = document.getElementById('ntcSlider');
         const ngcSlider = document.getElementById('ngcSlider');
         const pfaSlider = document.getElementById('pfaSlider');
+        const thresholdSlider = document.getElementById('thresholdSlider');
         const ntcValue = document.getElementById('ntcValue');
         const ngcValue = document.getElementById('ngcValue');
         const pfaValue = document.getElementById('pfaValue');
+        const thresholdValue = document.getElementById('thresholdValue');
         const applyButton = document.getElementById('applyButton');
         const parameterStatus = document.getElementById('parameterStatus');
         
@@ -278,12 +284,17 @@
             // Format to 3 decimal places for display
             pfaValue.textContent = parseFloat(this.value).toFixed(3);
         });
+
+        thresholdSlider.addEventListener('input', function() {
+            thresholdValue.textContent = this.value;
+        });
         
         // Function to apply parameters
         async function applyCFARParameters() {
             const ntc = parseInt(ntcSlider.value);
             const ngc = parseInt(ngcSlider.value);
             const pfa = parseFloat(pfaSlider.value);
+            const threshold = parseInt(thresholdSlider.value);
             
             parameterStatus.textContent = 'Updating parameters...';
             
@@ -296,7 +307,8 @@
                     body: JSON.stringify({
                         ntc: ntc,
                         ngc: ngc,
-                        pfa: pfa
+                        pfa: pfa,
+                        threshold: threshold
                     })
                 });
                 

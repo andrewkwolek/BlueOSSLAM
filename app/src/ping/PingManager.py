@@ -43,12 +43,14 @@ class PingManager:
                            18,   18.9,  19.8,  20.7,  21.6,  22.5,  23.4,  24.3]
 
         self.feature_extractor = SonarFeatureExtraction(
-            Ntc=Ntc, Ngc=Ngc, Pfa=Pfa)
+            Ntc=Ntc, Ngc=Ngc, Pfa=Pfa, alg="GOCA")
         self.features = None
 
         self.costmap = None
         self.X = None
         self.Y = None
+
+        self.resolution = (WATER_SOS*SAMPLE_PERIOD*25e-9)/2
 
         # Callback function for when current_scan is updated
         self._on_scan_updated_callback: Optional[Callable[[
@@ -99,8 +101,7 @@ class PingManager:
                 if self._on_scan_updated_callback:
                     self._on_scan_updated_callback(self.current_scan)
 
-                resolution = (WATER_SOS*sample_period*25e-9)/2
-                self.costmap, self.X, self.Y = await self.feature_extractor.extract_features(self.current_scan, self.angles, resolution)
+                self.costmap, self.X, self.Y = await self.feature_extractor.extract_features(self.current_scan, self.angles, self.resolution)
                 self.data_mat = []
                 self.angles = []
             else:
@@ -117,12 +118,11 @@ class PingManager:
 
                 for dataset in datasets:
                     if datasets:
-                        self.current_scan = file[dataset][:]
-                        print(self.current_scan)
-                        logger.info(f"Loaded scan data from {dataset}")
-                        resolution = (WATER_SOS*SAMPLE_PERIOD*25e-9)/2
+                        self.current_scan = self.clean(file[dataset][:])
+                        logger.info(
+                            f"Max: {np.max(self.current_scan)}, Min: {np.min(self.current_scan)}")
                         self.current_angles = self.angles
-                        self.costmap, self.X, self.Y = await self.feature_extractor.extract_features(self.current_scan, self.angles, resolution)
+                        self.costmap, self.X, self.Y = await self.feature_extractor.extract_features(self.current_scan, self.angles, self.resolution)
                     else:
                         logger.warning("No scans found in file.")
                     await asyncio.sleep(15)
@@ -150,3 +150,12 @@ class PingManager:
 
     def get_cfar_polar(self):
         return self.feature_extractor.get_cfar()
+
+    def clean(self, sonar_data):
+        """Sonar data below operating range get set to zero."""
+        index = 0
+        while index*self.resolution < 0.75:
+            sonar_data[index] = 0
+            index += 1
+
+        return sonar_data

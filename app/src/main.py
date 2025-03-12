@@ -14,7 +14,6 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi_versioning import VersionedFastAPI, version
-from loguru import logger
 from Processor import Processor
 from pydantic import BaseModel
 from ping.PingManager import PingManager
@@ -28,6 +27,7 @@ class CFARParams(BaseModel):
     ntc: int
     ngc: int
     pfa: float
+    threshold: int
 
 
 SERVICE_NAME = "slam"
@@ -61,21 +61,25 @@ async def update_cfar_params(params: CFARParams):
     if params.pfa <= 0 or params.pfa > 1:
         return {"detail": "Pfa must be between 0 and 1"}
 
+    if params.threshold <= 0 or params.threshold > 255:
+        return {"detail": "Threshold must be between 0 and 255"}
+
     # Update the CFAR parameters
     try:
         # Update the settings module values (if needed for future initializations)
-        global Ntc, Ngc, Pfa
+        global Ntc, Ngc, Pfa, threshold
         Ntc = params.ntc
         Ngc = params.ngc
         Pfa = params.pfa
+        threshold = params.threshold
 
         # Use the new update method instead of reinitializing
         result = await ping_manager.feature_extractor.update_cfar_parameters(
-            Ntc=params.ntc, Ngc=params.ngc, Pfa=params.pfa)
+            Ntc=params.ntc, Ngc=params.ngc, Pfa=params.pfa, threshold=params.threshold)
 
         if result:
             logger.info(
-                f"CFAR parameters updated: Ntc={params.ntc}, Ngc={params.ngc}, Pfa={params.pfa}")
+                f"CFAR parameters updated: Ntc={params.ntc}, Ngc={params.ngc}, Pfa={params.pfa}, threshold={params.threshold}")
             return {"status": "success", "message": "CFAR parameters updated"}
         else:
             return {"detail": "Failed to update CFAR parameters"}
@@ -104,8 +108,6 @@ async def get_costmap():
     if costmap is None or len(costmap) == 0:
         logger.warning("No point cloud data available.")
         return {"message": "No point cloud data available yet."}
-
-    logger.debug(f"Point cloud shape: {costmap.shape}")
 
     # Create a plot
     plt.figure(figsize=(8, 8))
@@ -147,14 +149,14 @@ async def get_scan_data():
     ranges = np.arange(0, num_ranges * resolution, resolution)
 
     # Power spectrum (apply log transform for better visualization)
-    range_azimuth_psd = np.log10(scan_data.astype(np.float32) + 1.0)
+    range_azimuth_psd = scan_data
 
     # Plot the power spectrum
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
 
     # Use extent to properly map the image to correct coordinates
     extent = [0, num_azimuths-1, ranges[0], ranges[-1]]
-    im = ax.imshow(range_azimuth_psd, cmap='plasma', aspect='auto',
+    im = ax.imshow(range_azimuth_psd, cmap='viridis', aspect='auto',
                    extent=extent, origin='lower', vmin=0, vmax=np.max(range_azimuth_psd))
 
     fig.suptitle("Range-Azimuth Strength Spectrum", fontsize=14)
@@ -208,14 +210,15 @@ async def get_cfar_data():
     ranges = np.arange(0, num_ranges * resolution, resolution)
 
     # Power spectrum (apply log transform for better visualization)
-    range_azimuth_psd = np.log10(scan_data.astype(np.float32) + 1.0)
+    # range_azimuth_psd = np.log10(scan_data.astype(np.float32) + 1.0)
+    range_azimuth_psd = scan_data
 
     # Plot the power spectrum
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
 
     # Use extent to properly map the image to correct coordinates
     extent = [0, num_azimuths-1, ranges[0], ranges[-1]]
-    im = ax.imshow(range_azimuth_psd, cmap='plasma', aspect='auto',
+    im = ax.imshow(range_azimuth_psd, cmap='viridis', aspect='auto',
                    extent=extent, origin='lower', vmin=0, vmax=np.max(range_azimuth_psd))
 
     fig.suptitle("CFAR Strength Spectrum", fontsize=14)

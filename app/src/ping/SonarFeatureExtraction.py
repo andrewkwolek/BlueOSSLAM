@@ -6,7 +6,7 @@ from loguru import logger
 
 
 class SonarFeatureExtraction:
-    def __init__(self, Ntc=40, Ngc=10, Pfa=1e-2, rank=None, alg="SOCA", resolution=0.5, threshold=0):
+    def __init__(self, Ntc=40, Ngc=10, Pfa=1e-2, rank=None, alg="GOCA", resolution=0.5, threshold=30):
         self.Ntc = Ntc
         self.Ngc = Ngc
         self.Pfa = Pfa
@@ -48,7 +48,7 @@ class SonarFeatureExtraction:
 
         # CFAR Detection
         peaks = self.detector.detect(img, self.alg)
-        peaks &= img > self.threshold  # Apply additional thresholding if necessary
+        # peaks &= img > self.threshold  # Apply additional thresholding if necessary
 
         self.cfar_polar = peaks
 
