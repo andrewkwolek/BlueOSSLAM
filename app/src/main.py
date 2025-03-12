@@ -16,11 +16,19 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi_versioning import VersionedFastAPI, version
 from loguru import logger
 from Processor import Processor
+from pydantic import BaseModel
 from ping.PingManager import PingManager
 from ping.ScanRecorder import SonarRecorder
 from uvicorn import Config, Server
 
 from settings import *
+
+
+class CFARParams(BaseModel):
+    ntc: int
+    ngc: int
+    pfa: float
+
 
 SERVICE_NAME = "slam"
 
@@ -31,7 +39,7 @@ app = FastAPI(
 )
 
 logger.info(f"Starting {SERVICE_NAME}")
-# data_processor = Processor()
+data_processor = Processor()
 ping_manager = PingManager(
     device=None, baudrate=115200, udp=UDP_PORT, live=LIVE_SONAR)
 scan_recorder = SonarRecorder()
@@ -40,19 +48,40 @@ logger.info("Register sonar callback")
 ping_manager.register_scan_update_callback(scan_recorder.save_scan)
 
 
-# @app.post("/start_recording")
-# @version(1, 0)
-# async def start() -> Any:
-#     await data_processor.data_manager.start_recording()
-#     asyncio.create_task(data_processor.data_manager.record_data())
-#     return {'message': 'Recording started.'}
+@app.post("/update_cfar_params")
+@version(1, 0)
+async def update_cfar_params(params: CFARParams):
+    # Validate the parameters
+    if params.ntc % 2 != 0:
+        return {"detail": "Ntc must be an even number"}
 
+    if params.ngc % 2 != 0:
+        return {"detail": "Ngc must be an even number"}
 
-# @app.post("/stop_recording")
-# @version(1, 0)
-# async def stop() -> Any:
-#     await data_processor.data_manager.stop_recording()
-#     return {'message': 'Recording stopped.'}
+    if params.pfa <= 0 or params.pfa > 1:
+        return {"detail": "Pfa must be between 0 and 1"}
+
+    # Update the CFAR parameters
+    try:
+        # Update the settings module values (if needed for future initializations)
+        global Ntc, Ngc, Pfa
+        Ntc = params.ntc
+        Ngc = params.ngc
+        Pfa = params.pfa
+
+        # Use the new update method instead of reinitializing
+        result = await ping_manager.feature_extractor.update_cfar_parameters(
+            Ntc=params.ntc, Ngc=params.ngc, Pfa=params.pfa)
+
+        if result:
+            logger.info(
+                f"CFAR parameters updated: Ntc={params.ntc}, Ngc={params.ngc}, Pfa={params.pfa}")
+            return {"status": "success", "message": "CFAR parameters updated"}
+        else:
+            return {"detail": "Failed to update CFAR parameters"}
+    except Exception as e:
+        logger.error(f"Error updating CFAR parameters: {str(e)}")
+        return {"detail": f"Error updating parameters: {str(e)}"}
 
 
 @app.post("/record_ping")
@@ -112,17 +141,13 @@ async def get_scan_data():
     # Range resolution calculation
     resolution = (WATER_SOS * SAMPLE_PERIOD * 25e-9) / 2
     num_ranges = scan_data.shape[0]
-    num_azimuths = scan_data.shape[1]  # Make sure to get the correct dimension
-
-    logger.info(f"Num ranges: {num_ranges}")
-    logger.info(f"Num azimuths: {num_azimuths}")
+    num_azimuths = scan_data.shape[1]
 
     # Define ranges based on resolution
     ranges = np.arange(0, num_ranges * resolution, resolution)
 
     # Power spectrum (apply log transform for better visualization)
-    # Add small value to avoid log(0)
-    range_azimuth_psd = np.log10(scan_data + 1)  # Add 1 to avoid log(0)
+    range_azimuth_psd = np.log10(scan_data.astype(np.float32) + 1.0)
 
     # Plot the power spectrum
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
@@ -135,10 +160,6 @@ async def get_scan_data():
     fig.suptitle("Range-Azimuth Strength Spectrum", fontsize=14)
     ax.set_xlabel("Azimuth Angle (degrees)")
     ax.set_ylabel("Range (meters)")
-
-    # Add a colorbar
-    # cbar = fig.colorbar(im, ax=ax)
-    # cbar.set_label('Strength')
 
     # Set evenly spaced range ticks
     num_range_ticks = 10
@@ -183,16 +204,11 @@ async def get_cfar_data():
     num_ranges = scan_data.shape[0]
     num_azimuths = scan_data.shape[1]  # Make sure to get the correct dimension
 
-    logger.info(f"Num ranges: {num_ranges}")
-    logger.info(f"Num azimuths: {num_azimuths}")
-
     # Define ranges based on resolution
     ranges = np.arange(0, num_ranges * resolution, resolution)
 
     # Power spectrum (apply log transform for better visualization)
-    # Add small value to avoid log(0)
-    # Modify this line in get_scan_data()
-    range_azimuth_psd = np.log10(scan_data + 1)  # Add 1 to avoid log(0)
+    range_azimuth_psd = np.log10(scan_data.astype(np.float32) + 1.0)
 
     # Plot the power spectrum
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
@@ -205,10 +221,6 @@ async def get_cfar_data():
     fig.suptitle("CFAR Strength Spectrum", fontsize=14)
     ax.set_xlabel("Azimuth Angle (degrees)")
     ax.set_ylabel("Range (meters)")
-
-    # Add a colorbar
-    # cbar = fig.colorbar(im, ax=ax)
-    # cbar.set_label('Strength')
 
     # Set evenly spaced range ticks
     num_range_ticks = 10
@@ -262,7 +274,7 @@ async def start_services():
         ))
     else:
         asyncio.create_task(ping_manager.read_recording(
-            "/app/sonar_data/sonar2.h5"))
+            "/app/sonar_data/sonar_better.h5"))
 
     # Running the uvicorn server in the background
     config = Config(app=app, host="0.0.0.0", port=9050, log_config=None)

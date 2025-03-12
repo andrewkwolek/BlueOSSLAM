@@ -66,8 +66,57 @@
             font-style: italic;
             color: #666;
         }
+
+        .cfar-controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f0f8ff;
+            border-radius: 4px;
+            border-left: 4px solid #4169e1;
+        }
+        
+        .cfar-controls h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .slider-container {
+            margin-bottom: 15px;
+        }
+        
+        .slider-container label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .slider-container input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        #applyButton {
+            background-color: #4169e1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        #applyButton:hover {
+            background-color: #3457b2;
+        }
+        
+        #parameterStatus {
+            margin-top: 10px;
+            font-style: italic;
+        }
     </style>
 </head>
+
 <body>
     <h1 style="margin-bottom: 10px; font-size: 24px;">SLAM Sonar Visualization</h1>
     
@@ -76,6 +125,24 @@
         <input type="number" id="refreshRate" min="1" max="60" value="3" step="1">
         <button id="toggleRefresh">Start Auto-refresh</button>
         <div class="status" id="refreshStatus">Auto-refresh is off</div>
+
+        <div class="cfar-controls">
+            <h3>CFAR Parameters</h3>
+            <div class="slider-container">
+                <label for="ntcSlider">Ntc (Training Cells): <span id="ntcValue">40</span></label>
+                <input type="range" id="ntcSlider" min="2" max="400" value="40" step="2">
+            </div>
+            <div class="slider-container">
+                <label for="ngcSlider">Ngc (Guard Cells): <span id="ngcValue">10</span></label>
+                <input type="range" id="ngcSlider" min="2" max="100" value="10" step="2">
+            </div>
+            <div class="slider-container">
+                <label for="pfaSlider">Pfa (False Alarm Rate): <span id="pfaValue">0.01</span></label>
+                <input type="range" id="pfaSlider" min="0.0001" max="0.1" value="0.01" step="0.001">
+            </div>
+            <button id="applyButton">Apply Parameters</button>
+            <div id="parameterStatus" class="status"></div>
+        </div>
     </div>
 
     <div class="plots-container">
@@ -187,6 +254,75 @@
         
         // Initial refresh when page loads
         refreshPlots();
+
+        // Get references to the new slider elements
+        const ntcSlider = document.getElementById('ntcSlider');
+        const ngcSlider = document.getElementById('ngcSlider');
+        const pfaSlider = document.getElementById('pfaSlider');
+        const ntcValue = document.getElementById('ntcValue');
+        const ngcValue = document.getElementById('ngcValue');
+        const pfaValue = document.getElementById('pfaValue');
+        const applyButton = document.getElementById('applyButton');
+        const parameterStatus = document.getElementById('parameterStatus');
+        
+        // Update display values when sliders are moved
+        ntcSlider.addEventListener('input', function() {
+            ntcValue.textContent = this.value;
+        });
+        
+        ngcSlider.addEventListener('input', function() {
+            ngcValue.textContent = this.value;
+        });
+        
+        pfaSlider.addEventListener('input', function() {
+            // Format to 3 decimal places for display
+            pfaValue.textContent = parseFloat(this.value).toFixed(3);
+        });
+        
+        // Function to apply parameters
+        async function applyCFARParameters() {
+            const ntc = parseInt(ntcSlider.value);
+            const ngc = parseInt(ngcSlider.value);
+            const pfa = parseFloat(pfaSlider.value);
+            
+            parameterStatus.textContent = 'Updating parameters...';
+            
+            try {
+                const response = await fetch('/v1.0/update_cfar_params', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ntc: ntc,
+                        ngc: ngc,
+                        pfa: pfa
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    parameterStatus.textContent = 'Parameters updated successfully! Refreshing...';
+                    
+                    // Auto-refresh the images to show the effect of new parameters
+                    refreshPlots();
+                    
+                    // Update status after refresh
+                    setTimeout(() => {
+                        parameterStatus.textContent = 'Parameters updated successfully!';
+                    }, 2000);
+                } else {
+                    parameterStatus.textContent = `Error: ${result.detail || 'Failed to update parameters'}`;
+                }
+            } catch (error) {
+                parameterStatus.textContent = `Error: ${error.message}`;
+                console.error('Error updating CFAR parameters:', error);
+            }
+        }
+        
+        // Add event listener to apply button
+        applyButton.addEventListener('click', applyCFARParameters);
     </script>
 </body>
 </html>

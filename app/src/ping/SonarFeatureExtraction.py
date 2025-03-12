@@ -31,7 +31,6 @@ class SonarFeatureExtraction:
         else:
             bearing_range = bearings[-1] - bearings[0]
         _width = np.sin(np.radians(bearing_range)) * _height
-        logger.info(f"Width {_width}")
 
         # Create a meshgrid for x and y axes based on the range values
         x_range = np.arange(-_width/2, _width/2, _res)
@@ -52,10 +51,6 @@ class SonarFeatureExtraction:
         peaks &= img > self.threshold  # Apply additional thresholding if necessary
 
         self.cfar_polar = peaks
-
-        # Number of peaks detected
-        logger.debug(f"Peaks detected: {np.sum(peaks)}")
-        logger.debug(f"Peaks matrix shape: {peaks.shape}")
 
         # Get indices of detected peaks
         peak_indices = np.argwhere(peaks)
@@ -115,3 +110,34 @@ class SonarFeatureExtraction:
 
     def get_cfar(self):
         return self.cfar_polar
+
+    async def update_cfar_parameters(self, Ntc, Ngc, Pfa, rank=None, alg=None, threshold=None):
+        """
+        Update CFAR parameters without recreating the detector.
+
+        Args:
+            Ntc (int): Number of training cells (must be even)
+            Ngc (int): Number of guard cells (must be even)
+            Pfa (float): Probability of false alarm (0-1)
+            rank (int, optional): Rank parameter for OS-CFAR
+            alg (str, optional): CFAR algorithm type
+            threshold (float, optional): Additional threshold value
+        """
+        # Update instance variables
+        self.Ntc = Ntc
+        self.Ngc = Ngc
+        self.Pfa = Pfa
+
+        if rank is not None:
+            self.rank = rank
+
+        if alg is not None:
+            self.alg = alg
+
+        if threshold is not None:
+            self.threshold = threshold
+
+        # Update the CFAR detector
+        self.detector = CFAR(self.Ntc, self.Ngc, self.Pfa, self.rank)
+
+        return True
