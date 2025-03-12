@@ -122,15 +122,15 @@ async def get_scan_data():
 
     # Power spectrum (apply log transform for better visualization)
     # Add small value to avoid log(0)
-    range_azimuth_psd = scan_data
+    range_azimuth_psd = np.log10(scan_data + 1)  # Add 1 to avoid log(0)
 
     # Plot the power spectrum
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
 
     # Use extent to properly map the image to correct coordinates
     extent = [0, num_azimuths-1, ranges[0], ranges[-1]]
-    im = ax.imshow(range_azimuth_psd, cmap='viridis',
-                   aspect='auto', extent=extent, origin='lower')
+    im = ax.imshow(range_azimuth_psd, cmap='plasma', aspect='auto',
+                   extent=extent, origin='lower', vmin=0, vmax=np.max(range_azimuth_psd))
 
     fig.suptitle("Range-Azimuth Strength Spectrum", fontsize=14)
     ax.set_xlabel("Azimuth Angle (degrees)")
@@ -191,15 +191,16 @@ async def get_cfar_data():
 
     # Power spectrum (apply log transform for better visualization)
     # Add small value to avoid log(0)
-    range_azimuth_psd = scan_data
+    # Modify this line in get_scan_data()
+    range_azimuth_psd = np.log10(scan_data + 1)  # Add 1 to avoid log(0)
 
     # Plot the power spectrum
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
 
     # Use extent to properly map the image to correct coordinates
     extent = [0, num_azimuths-1, ranges[0], ranges[-1]]
-    im = ax.imshow(range_azimuth_psd, cmap='viridis',
-                   aspect='auto', extent=extent, origin='lower')
+    im = ax.imshow(range_azimuth_psd, cmap='plasma', aspect='auto',
+                   extent=extent, origin='lower', vmin=0, vmax=np.max(range_azimuth_psd))
 
     fig.suptitle("CFAR Strength Spectrum", fontsize=14)
     ax.set_xlabel("Azimuth Angle (degrees)")
