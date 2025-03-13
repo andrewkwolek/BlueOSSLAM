@@ -8,7 +8,7 @@ from brping import definitions
 from loguru import logger
 from .SonarFeatureExtraction import SonarFeatureExtraction
 
-from settings import WATER_SOS, SAMPLE_PERIOD, Ntc, Ngc, Pfa
+from settings import WATER_SOS, TRANSMIT_DURATION, TRANSMIT_FREQUENCY, SAMPLE_PERIOD, Ntc, Ngc, Pfa
 
 
 class PingManager:
@@ -29,12 +29,6 @@ class PingManager:
             except:
                 logger.error("Failed to initialize Ping!")
                 exit(1)
-
-            self.current_scan = None
-            self.data_mat = []
-            self.angles = []
-            self.current_angles = None
-
         else:
             self.angles = [334.8, 335.7, 336.6, 337.5, 338.4, 339.3, 340.2, 341.1, 342,  342.9, 343.8, 344.7,
                            345.6, 346.5, 347.4, 348.3, 349.2, 350.1, 351,  351.9, 352.8, 353.7, 354.6, 355.5,
@@ -56,57 +50,53 @@ class PingManager:
         self._on_scan_updated_callback: Optional[Callable[[
             np.ndarray], None]] = None
 
+    async def shutdown(self):
+        if self.device is not None:
+            self.myPing360.connect_serial(self.device, self.baudrate)
+
+        # turn the motor off
+        self.myPing360.control_motor_off()
+
+        logger.info("Ping360 shutting down")
+
     def register_scan_update_callback(self, callback: Callable[[np.ndarray], None]):
         """Register a callback function to be called when current_scan is updated."""
         self._on_scan_updated_callback = callback
         logger.info("Sonar callback registered.")
 
-    async def get_ping_data(self, transmit_duration, sample_period, transmit_frequency):
+    async def scan(self, angle, transmit_duration, sample_period, transmit_frequency):
+        self.myPing360.control_transducer(
+            mode=1,
+            gain_setting=0,
+            angle=angle,
+            transmit_duration=transmit_duration,
+            sample_period=sample_period,
+            transmit_frequency=transmit_frequency,
+            number_of_samples=1200,
+            transmit=1,
+            reserved=0
+        )
+
+    async def get_ping_data(self):
         # Print the scanning head angle
-        step = 372
-        while True:
-            self.myPing360.control_transducer(
-                mode=1,
-                gain_setting=0,
-                angle=step,
-                transmit_duration=transmit_duration,
-                sample_period=sample_period,
-                transmit_frequency=transmit_frequency,
-                number_of_samples=1200,
-                transmit=1,
-                reserved=0
-            )
-            m = self.myPing360.wait_message(
-                [definitions.PING360_DEVICE_DATA])
-            if m:
-                self.data = ({
-                    "mode": m.mode,
-                    "gain_setting": m.gain_setting,
-                    "angle": m.angle * (180 / 200),
-                    "transmit_duration": m.transmit_duration,
-                    "sample_period": m.sample_period,
-                    "transmit_frequency": m.transmit_frequency,
-                    "number_of_samples": m.number_of_samples,
-                    "data": np.frombuffer(m.data, dtype=np.uint8),
-                })
-                self.angles.append(self.data['angle'])
-                self.data_mat.append(np.array(self.data['data']))
-                print(self.data['data'])
 
-            if step == 27:
-                step = 372
-                self.current_scan = np.array(self.data_mat).T
-                self.current_angles = self.angles
+        m = self.myPing360.wait_message(
+            [definitions.PING360_DEVICE_DATA])
+        if m:
+            self.data = ({
+                "mode": m.mode,
+                "gain_setting": m.gain_setting,
+                "angle": m.angle * (180 / 200),
+                "transmit_duration": m.transmit_duration,
+                "sample_period": m.sample_period,
+                "transmit_frequency": m.transmit_frequency,
+                "number_of_samples": m.number_of_samples,
+                "data": np.frombuffer(m.data, dtype=np.uint8),
+            })
 
-                if self._on_scan_updated_callback:
-                    self._on_scan_updated_callback(self.current_scan)
+            return self.data['angle'], np.array(self.data['data'])
 
-                self.costmap, self.X, self.Y = await self.feature_extractor.extract_features(self.current_scan, self.angles, self.resolution)
-                self.data_mat = []
-                self.angles = []
-            else:
-                step = (step + 1) % 400
-            await asyncio.sleep(0.1)
+        return None, None
 
     async def read_recording(self, filename):
         logger.info("Reading sonar data.")
@@ -119,7 +109,7 @@ class PingManager:
                 for dataset in datasets:
                     if datasets:
                         self.current_scan = self.clean(file[dataset][:])
-                        logger.info(
+                        logger.debug(
                             f"Max: {np.max(self.current_scan)}, Min: {np.min(self.current_scan)}")
                         self.current_angles = self.angles
                         self.costmap, self.X, self.Y = await self.feature_extractor.extract_features(self.current_scan, self.angles, self.resolution)
@@ -129,15 +119,6 @@ class PingManager:
         else:
             logger.error(f"File {filename} does not exist.")
             return None
-
-    async def shutdown(self):
-        if self.device is not None:
-            self.myPing360.connect_serial(self.device, self.baudrate)
-
-        # turn the motor off
-        self.myPing360.control_motor_off()
-
-        logger.info("Ping360 shutting down")
 
     def get_data(self):
         return self.current_scan
@@ -151,11 +132,53 @@ class PingManager:
     def get_cfar_polar(self):
         return self.feature_extractor.get_cfar()
 
-    def clean(self, sonar_data):
+    def clean(self, data):
         """Sonar data below operating range get set to zero."""
         index = 0
         while index*self.resolution < 0.75:
-            sonar_data[index] = 0
+            data[index] = 0
             index += 1
 
-        return sonar_data
+        return data, index
+
+    async def sonar_scanning(self, start=0, end=399, threshold=80):
+        self.current_scan = None
+        self.current_angles = None
+        data_mat = []
+        angles = []
+        range = []
+
+        step = start
+        while True:
+            await self.scan(step, TRANSMIT_DURATION,
+                            SAMPLE_PERIOD, TRANSMIT_FREQUENCY)
+            data, angle = await self.get_ping_data()
+
+            if data is None:
+                logger.warning(f"Ping360 message empty at step {step}!")
+                step = (step + 1) % 400
+                continue
+
+            # Remove data out of operating range and identify starting index
+            cleaned_data, start_index = self.clean(data)
+
+            # Apply a conservatively high amplitude threshold
+            cleaned_data[cleaned_data < threshold] = 0
+
+            data_mat.append(cleaned_data)
+            angles.append(angle)
+
+            if step == end:
+                step = start
+                self.current_scan = np.array(data_mat).T
+                self.current_angles = angles
+
+                if self._on_scan_updated_callback:
+                    self._on_scan_updated_callback(self.current_scan)
+
+                data_mat = []
+                angles = []
+            else:
+                step = (step + 1) % 400
+
+            asyncio.sleep(0.1)

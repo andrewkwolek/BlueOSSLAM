@@ -7,7 +7,7 @@ PING_DEVICE = '/dev/ttyUSB0'
 VIDEO_STREAM = 'udp://192.168.2.1:5600'
 UDP_PORT = '192.168.2.2:9092'
 VIDEO_PATH = '/dev/video2'
-LIVE_SONAR = False
+LIVE_SONAR = True
 
 WATER_SOS = 1481
 
