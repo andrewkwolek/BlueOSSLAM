@@ -133,6 +133,7 @@ async def get_costmap():
 async def get_scan_data():
     scan_data = ping_manager.get_data()
     angles = ping_manager.get_current_angles()
+    start_index = ping_manager.get_start_index()
 
     if angles is None:
         logger.warning("Scan incomplete!")
@@ -146,7 +147,8 @@ async def get_scan_data():
     num_azimuths = scan_data.shape[1]
 
     # Define ranges based on resolution
-    ranges = np.arange(0, num_ranges * resolution, resolution)
+    ranges = np.arange(start_index * resolution,
+                       (start_index + num_ranges) * resolution, resolution)
 
     # Power spectrum (apply log transform for better visualization)
     range_azimuth_psd = scan_data
@@ -194,6 +196,7 @@ async def get_scan_data():
 async def get_cfar_data():
     scan_data = ping_manager.get_cfar_polar()
     angles = ping_manager.get_current_angles()
+    start_index = ping_manager.get_start_index()
 
     if angles is None:
         logger.warning("Scan incomplete!")
@@ -207,7 +210,8 @@ async def get_cfar_data():
     num_azimuths = scan_data.shape[1]  # Make sure to get the correct dimension
 
     # Define ranges based on resolution
-    ranges = np.arange(0, num_ranges * resolution, resolution)
+    ranges = np.arange(start_index * resolution,
+                       (start_index + num_ranges) * resolution, resolution)
 
     # Power spectrum (apply log transform for better visualization)
     # range_azimuth_psd = np.log10(scan_data.astype(np.float32) + 1.0)
@@ -240,6 +244,107 @@ async def get_cfar_data():
     ax.set_xticklabels(azimuth_tick_labels)
 
     ax.grid(True, linestyle='--', alpha=0.7)
+
+    # Save plot to a BytesIO object
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+    buf.seek(0)
+    plt.close()
+
+    # Serve the image as a streaming response
+    return StreamingResponse(buf, media_type="image/png")
+
+
+@app.get("/polar_scan")
+@version(1, 0)
+async def get_polar_scan_data():
+    scan_data = ping_manager.get_data()
+    angles = ping_manager.get_current_angles()
+    start_index = ping_manager.get_start_index()
+
+    if angles is None:
+        logger.warning("Scan incomplete!")
+        return {"message": "Scan incomplete or no data available"}
+
+    if scan_data is None:
+        logger.warning("No scan data available!")
+        return {"message": "No scan data available"}
+
+    azimuths = np.array(angles)
+
+    # Range resolution calculation
+    resolution = (WATER_SOS * SAMPLE_PERIOD * 25e-9) / 2
+    num_ranges = scan_data.shape[0]
+    num_azimuths = scan_data.shape[1]
+
+    # Define ranges based on resolution
+    ranges = np.arange(start_index * resolution,
+                       (start_index + num_ranges) * resolution, resolution)
+
+    # Convert angles to radians for the polar plot
+    theta = np.radians(azimuths)
+
+    # Create a polar figure
+    fig, ax = plt.subplots(figsize=(10, 10), subplot_kw={
+                           'projection': 'polar'})
+
+    # Create a meshgrid for the polar plot
+    T, R = np.meshgrid(theta, ranges)
+
+    # Plot the data using pcolormesh in polar coordinates
+    # We need to handle the case where angles might not be in ascending order
+    # or might wrap around 0/360 degrees
+
+    # Sort angles and corresponding data for proper plotting
+    sorted_indices = np.argsort(theta)
+    theta_sorted = theta[sorted_indices]
+    Z = scan_data[:, sorted_indices]
+
+    # Fix for possible angle discontinuity (e.g., if scan crosses 0/360 degrees)
+    if np.max(np.diff(theta_sorted)) > np.pi:
+        # Find the discontinuity
+        jump_idx = np.argmax(np.diff(theta_sorted))
+
+        # Create arrays with repeated endpoints to close the gap
+        theta_fixed = np.concatenate(
+            [theta_sorted[jump_idx+1:], theta_sorted[:jump_idx+1] + 2*np.pi])
+        Z_fixed = np.column_stack([Z[:, jump_idx+1:], Z[:, :jump_idx+1]])
+
+        # Create a new meshgrid
+        T_fixed, R_fixed = np.meshgrid(theta_fixed, ranges)
+
+        # Plot with the fixed arrays
+        cax = ax.pcolormesh(T_fixed, R_fixed, Z_fixed,
+                            cmap='viridis', shading='auto')
+    else:
+        # Direct plotting if no discontinuity
+        cax = ax.pcolormesh(
+            theta_sorted, ranges, Z[:, sorted_indices], cmap='viridis', shading='auto')
+
+    # Add a colorbar
+    cbar = fig.colorbar(cax, ax=ax, orientation='vertical', pad=0.1)
+    cbar.set_label('Amplitude')
+
+    # Set the direction of increasing angle to be counterclockwise (mathematical standard)
+    ax.set_theta_direction(-1)
+
+    # Set the "zero" angle to the top of the plot (forward direction)
+    ax.set_theta_zero_location('N')
+
+    # Set the radial limits to show only the valid range
+    # Slightly reduce to avoid edge effects
+    ax.set_rlim(0, num_ranges * resolution * 0.9)
+
+    # Set grid and range labels at reasonable intervals
+    r_ticks = np.linspace(0, ranges[-1], min(10, len(ranges)))
+    ax.set_rticks(r_ticks)
+    ax.set_yticklabels([f"{tick:.1f}m" for tick in r_ticks])
+
+    # Customize angle labels
+    ax.set_xticks(np.radians(np.arange(0, 360, 45)))  # Every 45 degrees
+
+    # Set title
+    fig.suptitle("Sonar Scan - Polar View", fontsize=14)
 
     # Save plot to a BytesIO object
     buf = io.BytesIO()

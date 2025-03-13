@@ -108,7 +108,8 @@ class PingManager:
 
                 for dataset in datasets:
                     if datasets:
-                        self.current_scan = self.clean(file[dataset][:])
+                        self.current_scan, self.start_index = self.clean(
+                            file[dataset][:])
                         logger.debug(
                             f"Max: {np.max(self.current_scan)}, Min: {np.min(self.current_scan)}")
                         self.current_angles = self.angles
@@ -132,6 +133,9 @@ class PingManager:
     def get_cfar_polar(self):
         return self.feature_extractor.get_cfar()
 
+    def get_start_index(self):
+        return self.start_index
+
     def clean(self, data):
         """Sonar data below operating range get set to zero."""
         index = 0
@@ -139,7 +143,7 @@ class PingManager:
             data[index] = 0
             index += 1
 
-        return data, index
+        return data[index:], index
 
     async def sonar_scanning(self, start=0, end=399, threshold=80):
         self.current_scan = None
@@ -147,6 +151,8 @@ class PingManager:
         data_mat = []
         angles = []
         range = []
+
+        self.start_index = 0
 
         step = start
         while True:
@@ -160,7 +166,7 @@ class PingManager:
                 continue
 
             # Remove data out of operating range and identify starting index
-            cleaned_data, start_index = self.clean(data)
+            cleaned_data, self.start_index = self.clean(data)
 
             # Apply a conservatively high amplitude threshold
             cleaned_data[cleaned_data < threshold] = 0
