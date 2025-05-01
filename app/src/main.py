@@ -9,7 +9,7 @@ import asyncio
 import io
 import os
 import sys
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional
 
 import numpy as np
 from loguru import logger
@@ -30,8 +30,8 @@ from settings import (
     UDP_PORT,
     LIVE_SONAR,
     WATER_SOS,
-    CFARConfig,
-    SonarConfig
+    SonarConfig,
+    CFARConfig
 )
 
 
@@ -103,7 +103,6 @@ async def update_cfar_params(params: CFARParams) -> Dict[str, Any]:
             )
 
         # Update the settings globally
-        global CFARConfig
         CFARConfig.Ntc = params.ntc
         CFARConfig.Ngc = params.ngc
         CFARConfig.Pfa = params.pfa
@@ -214,13 +213,23 @@ async def get_costmap() -> StreamingResponse:
 
     # Create visualization
     try:
-        return await create_plot(
-            x, y, costmap,
-            title='Sonar Point Cloud',
-            x_label='X Coordinate (m)',
-            y_label='Y Coordinate (m)',
-            plot_type='mesh'
-        )
+        # Create a plot
+        plt.figure(figsize=(8, 8))
+        plt.pcolormesh(x, y, costmap, cmap='viridis')
+        plt.title('Sonar Point Cloud')
+        plt.xlabel('X Coordinate (m)')
+        plt.ylabel('Y Coordinate (m)')
+        plt.axis('equal')
+        plt.grid(True)
+
+        # Save plot to a BytesIO object
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        plt.close()
+
+        # Serve the image as a streaming response
+        return StreamingResponse(buf, media_type="image/png")
     except Exception as e:
         logger.error(f"Error creating costmap visualization: {str(e)}")
         raise HTTPException(
@@ -259,10 +268,64 @@ async def get_scan_data() -> StreamingResponse:
         )
 
     try:
-        return await create_range_azimuth_plot(
-            scan_data, angles, start_index,
-            title="Range-Azimuth Strength Spectrum"
+        # Process the scan data
+        azimuths = np.array(angles)
+
+        # Range resolution calculation
+        resolution = (WATER_SOS * SonarConfig.SAMPLE_PERIOD * 25e-9) / 2
+        num_ranges = scan_data.shape[0]
+        num_azimuths = scan_data.shape[1]
+
+        # Define ranges based on resolution
+        ranges = np.arange(
+            start_index * resolution,
+            (start_index + num_ranges) * resolution,
+            resolution
         )
+
+        # Create the plot
+        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+
+        # Use extent to properly map the image to correct coordinates
+        extent = [0, num_azimuths-1, ranges[0], ranges[-1]]
+        im = ax.imshow(
+            scan_data,
+            cmap='viridis',
+            aspect='auto',
+            extent=extent,
+            origin='lower',
+            vmin=0,
+            vmax=np.max(scan_data)
+        )
+
+        fig.suptitle("Range-Azimuth Strength Spectrum", fontsize=14)
+        ax.set_xlabel("Azimuth Angle (degrees)")
+        ax.set_ylabel("Range (meters)")
+
+        # Set evenly spaced range ticks
+        num_range_ticks = 10
+        range_tick_labels = np.linspace(
+            ranges[0], ranges[-1], num_range_ticks).round(2)
+        ax.set_yticks(range_tick_labels)
+
+        # Set evenly spaced azimuth ticks
+        num_azimuth_ticks = min(9, num_azimuths)
+        azimuth_indices = np.linspace(
+            0, num_azimuths-1, num_azimuth_ticks).astype(int)
+        azimuth_tick_labels = np.round(azimuths[azimuth_indices], 1)
+        ax.set_xticks(azimuth_indices)
+        ax.set_xticklabels(azimuth_tick_labels)
+
+        ax.grid(True, linestyle='--', alpha=0.7)
+
+        # Save plot to a BytesIO object
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        plt.close(fig)
+
+        # Serve the image as a streaming response
+        return StreamingResponse(buf, media_type="image/png")
     except Exception as e:
         logger.error(f"Error creating sonar scan visualization: {str(e)}")
         raise HTTPException(
@@ -301,11 +364,64 @@ async def get_cfar_data() -> StreamingResponse:
         )
 
     try:
-        return await create_range_azimuth_plot(
-            scan_data, angles, start_index,
-            title="CFAR Strength Spectrum",
-            colormap='viridis'
+        # Process the scan data
+        azimuths = np.array(angles)
+
+        # Range resolution calculation
+        resolution = (WATER_SOS * SonarConfig.SAMPLE_PERIOD * 25e-9) / 2
+        num_ranges = scan_data.shape[0]
+        num_azimuths = scan_data.shape[1]
+
+        # Define ranges based on resolution
+        ranges = np.arange(
+            start_index * resolution,
+            (start_index + num_ranges) * resolution,
+            resolution
         )
+
+        # Create the plot
+        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+
+        # Use extent to properly map the image to correct coordinates
+        extent = [0, num_azimuths-1, ranges[0], ranges[-1]]
+        im = ax.imshow(
+            scan_data,
+            cmap='viridis',
+            aspect='auto',
+            extent=extent,
+            origin='lower',
+            vmin=0,
+            vmax=np.max(scan_data)
+        )
+
+        fig.suptitle("CFAR Strength Spectrum", fontsize=14)
+        ax.set_xlabel("Azimuth Angle (degrees)")
+        ax.set_ylabel("Range (meters)")
+
+        # Set evenly spaced range ticks
+        num_range_ticks = 10
+        range_tick_labels = np.linspace(
+            ranges[0], ranges[-1], num_range_ticks).round(2)
+        ax.set_yticks(range_tick_labels)
+
+        # Set evenly spaced azimuth ticks
+        num_azimuth_ticks = min(9, num_azimuths)
+        azimuth_indices = np.linspace(
+            0, num_azimuths-1, num_azimuth_ticks).astype(int)
+        azimuth_tick_labels = np.round(azimuths[azimuth_indices], 1)
+        ax.set_xticks(azimuth_indices)
+        ax.set_xticklabels(azimuth_tick_labels)
+
+        ax.grid(True, linestyle='--', alpha=0.7)
+
+        # Save plot to a BytesIO object
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        plt.close(fig)
+
+        # Serve the image as a streaming response
+        return StreamingResponse(buf, media_type="image/png")
     except Exception as e:
         logger.error(f"Error creating CFAR visualization: {str(e)}")
         raise HTTPException(
@@ -344,245 +460,93 @@ async def get_polar_scan_data() -> StreamingResponse:
         )
 
     try:
-        return await create_polar_plot(
-            scan_data, angles, start_index,
-            title="Sonar Scan - Polar View"
+        # Process the scan data
+        azimuths = np.array(angles)
+
+        # Range resolution calculation
+        resolution = (WATER_SOS * SonarConfig.SAMPLE_PERIOD * 25e-9) / 2
+        num_ranges = scan_data.shape[0]
+
+        # Define ranges based on resolution
+        ranges = np.arange(
+            start_index * resolution,
+            (start_index + num_ranges) * resolution,
+            resolution
         )
+
+        # Convert angles to radians for the polar plot
+        theta = np.radians(azimuths)
+
+        # Create a polar figure
+        fig, ax = plt.subplots(figsize=(10, 10), subplot_kw={
+                               'projection': 'polar'})
+
+        # Sort angles for proper plotting
+        sorted_indices = np.argsort(theta)
+        theta_sorted = theta[sorted_indices]
+        Z = scan_data[:, sorted_indices]
+
+        # Handle angle discontinuity (e.g., if scan crosses 0/360 degrees)
+        if np.max(np.diff(theta_sorted)) > np.pi:
+            # Find the discontinuity
+            jump_idx = np.argmax(np.diff(theta_sorted))
+
+            # Create arrays with repeated endpoints to close the gap
+            theta_fixed = np.concatenate(
+                [theta_sorted[jump_idx+1:], theta_sorted[:jump_idx+1] + 2*np.pi])
+            Z_fixed = np.column_stack([Z[:, jump_idx+1:], Z[:, :jump_idx+1]])
+
+            # Create a new meshgrid
+            T_fixed, R_fixed = np.meshgrid(theta_fixed, ranges)
+
+            # Plot with the fixed arrays
+            cax = ax.pcolormesh(T_fixed, R_fixed, Z_fixed,
+                                cmap='viridis', shading='auto')
+        else:
+            # Direct plotting if no discontinuity
+            cax = ax.pcolormesh(
+                theta_sorted, ranges, Z[:, sorted_indices],
+                cmap='viridis', shading='auto'
+            )
+
+        # Add a colorbar
+        cbar = fig.colorbar(cax, ax=ax, orientation='vertical', pad=0.1)
+        cbar.set_label('Amplitude')
+
+        # Set the direction of increasing angle to be counterclockwise
+        ax.set_theta_direction(-1)
+
+        # Set the "zero" angle to the top of the plot (forward direction)
+        ax.set_theta_zero_location('N')
+
+        # Set the radial limits to show only the valid range
+        ax.set_rlim(0, num_ranges * resolution * 0.9)
+
+        # Set grid and range labels at reasonable intervals
+        r_ticks = np.linspace(0, ranges[-1], min(10, len(ranges)))
+        ax.set_rticks(r_ticks)
+        ax.set_yticklabels([f"{tick:.1f}m" for tick in r_ticks])
+
+        # Customize angle labels
+        ax.set_xticks(np.radians(np.arange(0, 360, 45)))  # Every 45 degrees
+
+        # Set title
+        fig.suptitle("Sonar Scan - Polar View", fontsize=14)
+
+        # Save plot to a BytesIO object
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        plt.close(fig)
+
+        # Serve the image as a streaming response
+        return StreamingResponse(buf, media_type="image/png")
     except Exception as e:
         logger.error(f"Error creating polar visualization: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Error creating visualization: {str(e)}"
         )
-
-
-async def create_range_azimuth_plot(
-    scan_data: np.ndarray,
-    angles: list,
-    start_index: int,
-    title: str = "Range-Azimuth Plot",
-    colormap: str = 'viridis'
-) -> StreamingResponse:
-    """
-    Create a range-azimuth plot from sonar data.
-
-    Args:
-        scan_data: Sonar data array
-        angles: List of azimuth angles
-        start_index: Starting index for range
-        title: Plot title
-        colormap: Matplotlib colormap name
-
-    Returns:
-        StreamingResponse with PNG image
-    """
-    azimuths = np.array(angles)
-
-    # Range resolution calculation
-    resolution = (WATER_SOS * SonarConfig.SAMPLE_PERIOD * 25e-9) / 2
-    num_ranges = scan_data.shape[0]
-    num_azimuths = scan_data.shape[1]
-
-    # Define ranges based on resolution
-    ranges = np.arange(
-        start_index * resolution,
-        (start_index + num_ranges) * resolution,
-        resolution
-    )
-
-    # Create the plot
-    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-
-    # Use extent to properly map the image to correct coordinates
-    extent = [0, num_azimuths-1, ranges[0], ranges[-1]]
-    im = ax.imshow(
-        scan_data,
-        cmap=colormap,
-        aspect='auto',
-        extent=extent,
-        origin='lower',
-        vmin=0,
-        vmax=np.max(scan_data)
-    )
-
-    fig.suptitle(title, fontsize=14)
-    ax.set_xlabel("Azimuth Angle (degrees)")
-    ax.set_ylabel("Range (meters)")
-
-    # Set evenly spaced range ticks
-    num_range_ticks = 10
-    range_tick_labels = np.linspace(
-        ranges[0], ranges[-1], num_range_ticks).round(2)
-    ax.set_yticks(range_tick_labels)
-
-    # Set evenly spaced azimuth ticks
-    num_azimuth_ticks = min(9, num_azimuths)
-    azimuth_indices = np.linspace(
-        0, num_azimuths-1, num_azimuth_ticks).astype(int)
-    azimuth_tick_labels = np.round(azimuths[azimuth_indices], 1)
-    ax.set_xticks(azimuth_indices)
-    ax.set_xticklabels(azimuth_tick_labels)
-
-    ax.grid(True, linestyle='--', alpha=0.7)
-
-    # Save plot to a BytesIO object
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
-    buf.seek(0)
-    plt.close(fig)
-
-    # Serve the image as a streaming response
-    return StreamingResponse(buf, media_type="image/png")
-
-
-async def create_polar_plot(
-    scan_data: np.ndarray,
-    angles: list,
-    start_index: int,
-    title: str = "Polar Plot"
-) -> StreamingResponse:
-    """
-    Create a polar plot from sonar data.
-
-    Args:
-        scan_data: Sonar data array
-        angles: List of azimuth angles
-        start_index: Starting index for range
-        title: Plot title
-
-    Returns:
-        StreamingResponse with PNG image
-    """
-    azimuths = np.array(angles)
-
-    # Range resolution calculation
-    resolution = (WATER_SOS * SonarConfig.SAMPLE_PERIOD * 25e-9) / 2
-    num_ranges = scan_data.shape[0]
-
-    # Define ranges based on resolution
-    ranges = np.arange(
-        start_index * resolution,
-        (start_index + num_ranges) * resolution,
-        resolution
-    )
-
-    # Convert angles to radians for the polar plot
-    theta = np.radians(azimuths)
-
-    # Create a polar figure
-    fig, ax = plt.subplots(figsize=(10, 10), subplot_kw={
-                           'projection': 'polar'})
-
-    # Sort angles for proper plotting
-    sorted_indices = np.argsort(theta)
-    theta_sorted = theta[sorted_indices]
-    Z = scan_data[:, sorted_indices]
-
-    # Handle angle discontinuity (e.g., if scan crosses 0/360 degrees)
-    if np.max(np.diff(theta_sorted)) > np.pi:
-        # Find the discontinuity
-        jump_idx = np.argmax(np.diff(theta_sorted))
-
-        # Create arrays with repeated endpoints to close the gap
-        theta_fixed = np.concatenate(
-            [theta_sorted[jump_idx+1:], theta_sorted[:jump_idx+1] + 2*np.pi])
-        Z_fixed = np.column_stack([Z[:, jump_idx+1:], Z[:, :jump_idx+1]])
-
-        # Create a new meshgrid
-        T_fixed, R_fixed = np.meshgrid(theta_fixed, ranges)
-
-        # Plot with the fixed arrays
-        cax = ax.pcolormesh(T_fixed, R_fixed, Z_fixed,
-                            cmap='viridis', shading='auto')
-    else:
-        # Direct plotting if no discontinuity
-        cax = ax.pcolormesh(
-            theta_sorted, ranges, Z[:, sorted_indices],
-            cmap='viridis', shading='auto'
-        )
-
-    # Add a colorbar
-    cbar = fig.colorbar(cax, ax=ax, orientation='vertical', pad=0.1)
-    cbar.set_label('Amplitude')
-
-    # Set the direction of increasing angle to be counterclockwise
-    ax.set_theta_direction(-1)
-
-    # Set the "zero" angle to the top of the plot (forward direction)
-    ax.set_theta_zero_location('N')
-
-    # Set the radial limits to show only the valid range
-    ax.set_rlim(0, num_ranges * resolution * 0.9)
-
-    # Set grid and range labels at reasonable intervals
-    r_ticks = np.linspace(0, ranges[-1], min(10, len(ranges)))
-    ax.set_rticks(r_ticks)
-    ax.set_yticklabels([f"{tick:.1f}m" for tick in r_ticks])
-
-    # Customize angle labels
-    ax.set_xticks(np.radians(np.arange(0, 360, 45)))  # Every 45 degrees
-
-    # Set title
-    fig.suptitle(title, fontsize=14)
-
-    # Save plot to a BytesIO object
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
-    buf.seek(0)
-    plt.close(fig)
-
-    # Serve the image as a streaming response
-    return StreamingResponse(buf, media_type="image/png")
-
-
-async def create_plot(
-    x: np.ndarray,
-    y: np.ndarray,
-    z: np.ndarray,
-    title: str = "Plot",
-    x_label: str = "X",
-    y_label: str = "Y",
-    plot_type: str = 'mesh'
-) -> StreamingResponse:
-    """
-    Create a generic 2D plot with provided data.
-
-    Args:
-        x: X-axis data
-        y: Y-axis data
-        z: Z-axis data (for color mapping)
-        title: Plot title
-        x_label: X-axis label
-        y_label: Y-axis label
-        plot_type: Type of plot ('mesh' or 'contour')
-
-    Returns:
-        StreamingResponse with PNG image
-    """
-    plt.figure(figsize=(8, 8))
-
-    if plot_type == 'mesh':
-        plt.pcolormesh(x, y, z, cmap='viridis')
-    elif plot_type == 'contour':
-        plt.contourf(x, y, z, cmap='viridis')
-    else:
-        plt.pcolormesh(x, y, z, cmap='viridis')
-
-    plt.title(title)
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    plt.axis('equal')
-    plt.grid(True)
-    plt.colorbar(label='Value')
-
-    # Save plot to a BytesIO object
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    buf.seek(0)
-    plt.close()
-
-    # Serve the image as a streaming response
-    return StreamingResponse(buf, media_type="image/png")
 
 
 # Apply versioning to the FastAPI app
@@ -603,16 +567,13 @@ async def root() -> HTMLResponse:
     return HTMLResponse(content="index.html", status_code=200)
 
 
-async def setup_services() -> Tuple[Processor, PingManager, SonarRecorder]:
-    """
-    Initialize all services required for the application.
+async def setup_services() -> None:
+    """Initialize all services required for the application."""
+    global data_processor, ping_manager, scan_recorder
 
-    Returns:
-        Tuple of (data_processor, ping_manager, scan_recorder)
-    """
     # Create data processor
     logger.info("Initializing data processor")
-    processor = Processor()
+    data_processor = Processor()
 
     # Create directories if they don't exist
     os.makedirs(DATA_FILEPATH, exist_ok=True)
@@ -620,7 +581,7 @@ async def setup_services() -> Tuple[Processor, PingManager, SonarRecorder]:
 
     # Create ping manager
     logger.info("Initializing ping manager")
-    ping_mgr = PingManager(
+    ping_manager = PingManager(
         device=None,
         baudrate=115200,
         udp=UDP_PORT,
@@ -629,68 +590,52 @@ async def setup_services() -> Tuple[Processor, PingManager, SonarRecorder]:
 
     # Create sonar recorder
     logger.info("Initializing sonar recorder")
-    recorder = SonarRecorder()
+    scan_recorder = SonarRecorder()
 
     # Register sonar callback
     logger.info("Registering sonar callback")
-    ping_mgr.register_scan_update_callback(recorder.save_scan)
-
-    return processor, ping_mgr, recorder
+    ping_manager.register_scan_update_callback(scan_recorder.save_scan)
 
 
 async def start_services() -> None:
     """Initialize and start all services."""
-    global data_processor, ping_manager, scan_recorder
-
     try:
         # Setup services
-        data_processor, ping_manager, scan_recorder = await setup_services()
+        await setup_services()
 
         # Start data processor
         logger.info("Starting data processor")
-        # await data_processor.start()
+        # asyncio.create_task(data_processor.receive_mavlink_data())
 
         # Start ping manager
         if LIVE_SONAR:
             logger.info("Starting live sonar data collection")
-            asyncio.create_task(ping_manager.get_ping_data(
-                transmit_duration=SonarConfig.TRANSMIT_DURATION,
-                sample_period=SonarConfig.SAMPLE_PERIOD,
-                transmit_frequency=SonarConfig.TRANSMIT_FREQUENCY
-            ))
+            asyncio.create_task(ping_manager.sonar_scanning(0, 399, 0))
         else:
             logger.info("Starting sonar data replay")
-            asyncio.create_task(ping_manager.read_recording(
-                f"/app/sonar_data/{SONAR_FILE}"
-            ))
+            sonar_file_path = f"{SONAR_FILEPATH}/{SONAR_FILE}"
+            asyncio.create_task(ping_manager.read_recording(sonar_file_path))
 
         # Running the uvicorn server
-        import uvicorn
-        config = uvicorn.Config(
+        from uvicorn import Config, Server
+        config = Config(
             app=app,
             host="0.0.0.0",
             port=9050,
             log_config=None
         )
-        server = uvicorn.Server(config)
+        server = Server(config)
 
         logger.info("Starting web server")
         await server.serve()
 
     except Exception as e:
         logger.error(f"Error starting services: {e}")
-        # Attempt to clean up
-        if data_processor:
-            await data_processor.stop()
-        if ping_manager and hasattr(ping_manager, 'shutdown'):
-            await ping_manager.shutdown()
         sys.exit(1)
 
 
 async def cleanup() -> None:
     """Clean up resources on shutdown."""
-    if data_processor:
-        await data_processor.stop()
     if ping_manager and hasattr(ping_manager, 'shutdown'):
         await ping_manager.shutdown()
 

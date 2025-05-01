@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Tuple, List, Optional
+from typing import List, Tuple, Optional
 from loguru import logger
 
 from .CFAR import CFAR
@@ -150,7 +150,7 @@ class SonarFeatureExtraction:
             y_idx = np.abs(Y[:, 0] - y).argmin()  # Find closest Y index
 
             # Mark the detected point on the costmap
-            costmap[y_idx, x_idx] = 1
+            costmap[y_idx, x_idx] = 1  # Or increment based on detection count
 
         return costmap, X, Y
 

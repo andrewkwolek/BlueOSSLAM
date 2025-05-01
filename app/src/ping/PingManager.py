@@ -1,4 +1,4 @@
-from typing import Optional, Callable, Tuple
+from typing import Optional, Callable, Tuple, List
 import asyncio
 import os
 import h5py
@@ -6,8 +6,8 @@ import numpy as np
 from brping import Ping360
 from brping import definitions
 from loguru import logger
-from .SonarFeatureExtraction import SonarFeatureExtraction
 
+from .SonarFeatureExtraction import SonarFeatureExtraction
 from settings import WATER_SOS, SonarConfig, CFARConfig
 
 
@@ -16,9 +16,8 @@ class PingManager:
     Manages the Ping360 sonar device, processing scans and feature extraction.
 
     Attributes:
-        myPing360: The Ping360 device object for live mode
-        resolution: The range resolution calculated from settings
         feature_extractor: Processes sonar data to extract features
+        resolution: The range resolution calculated from settings
         current_scan: The most recent complete scan data
         current_angles: The angles corresponding to the current scan
         costmap: The extracted feature costmap from the sonar data
@@ -37,26 +36,29 @@ class PingManager:
         """
         self.current_scan = None
         self.current_angles = None
-        self.costmap = None
-        self.X = None
-        self.Y = None
         self.start_index = 0
 
         # Calculate resolution based on acoustic properties and sample period
         self.resolution = (WATER_SOS * SonarConfig.SAMPLE_PERIOD * 25e-9) / 2
 
-        # Initialize feature extractor
-        self.feature_extractor = SonarFeatureExtraction(
-            Ntc=CFARConfig.Ntc, Ngc=CFARConfig.Ngc, Pfa=CFARConfig.Pfa, alg="GOCA")
-
-        # Callback function for when current_scan is updated
-        self._on_scan_updated_callback: Optional[Callable[[
-            np.ndarray], None]] = None
-
+        # Initialize for live or replay mode
         if live:
             self._init_live_device(device, baudrate, udp)
         else:
             self._init_replay_mode()
+
+        # Initialize feature extractor
+        self.feature_extractor = SonarFeatureExtraction(
+            Ntc=CFARConfig.Ntc, Ngc=CFARConfig.Ngc, Pfa=CFARConfig.Pfa, alg="GOCA")
+
+        # Initialize other instance variables
+        self.costmap = None
+        self.X = None
+        self.Y = None
+
+        # Callback function for when current_scan is updated
+        self._on_scan_updated_callback: Optional[Callable[[
+            np.ndarray], None]] = None
 
     def _init_live_device(self, device: Optional[str], baudrate: int, udp: str):
         """Initialize the PingManager for live device mode."""
@@ -66,12 +68,14 @@ class PingManager:
         self.udp = udp
 
         try:
+            # Connect to the device
             if device is not None:
-                self.myPing360.connect_serial(device, baudrate)
+                self.myPing360.connect_serial(device, self.baudrate)
             elif udp is not None:
                 host, port = udp.split(':')
                 self.myPing360.connect_udp(host, int(port))
 
+            # Initialize the device
             self.myPing360.initialize()
             logger.info("Ping360 initialized successfully")
         except Exception as e:
@@ -80,20 +84,17 @@ class PingManager:
 
     def _init_replay_mode(self):
         """Initialize the PingManager for replay mode (using recorded data)."""
-        # Predefined angles for replay mode
-        self.angles = [334.8, 335.7, 336.6, 337.5, 338.4, 339.3, 340.2, 341.1, 342,  342.9, 343.8, 344.7,
-                       345.6, 346.5, 347.4, 348.3, 349.2, 350.1, 351,  351.9, 352.8, 353.7, 354.6, 355.5,
-                       356.4, 357.3, 358.2, 359.1,   0,    0.9,   1.8,   2.7,   3.6,   4.5,   5.4,   6.3,
-                       7.2,   8.1,   9,    9.9,  10.8,  11.7,  12.6,  13.5,  14.4,  15.3,  16.2,  17.1,
-                       18,   18.9,  19.8,  20.7,  21.6,  22.5,  23.4,  24.3]
+        # Create angle list in degrees (0-399 gradians converted to 0-359.1 degrees)
+        self.angles = [angle * (180/200) for angle in range(400)]
         logger.info("Initialized in replay mode")
 
     async def shutdown(self):
         """Safely shut down the Ping360 device."""
         try:
-            if hasattr(self, 'myPing360') and hasattr(self, 'device') and self.device is not None:
+            if hasattr(self, 'device') and self.device is not None:
                 # Reconnect if needed before shutting down
                 self.myPing360.connect_serial(self.device, self.baudrate)
+
                 # Turn the motor off
                 self.myPing360.control_motor_off()
                 logger.info("Ping360 motor turned off")
@@ -133,81 +134,76 @@ class PingManager:
             reserved=0
         )
 
-    async def get_ping_data(self, transmit_duration: int = SonarConfig.TRANSMIT_DURATION,
-                            sample_period: int = SonarConfig.SAMPLE_PERIOD,
-                            transmit_frequency: int = SonarConfig.TRANSMIT_FREQUENCY) -> Tuple[Optional[float], Optional[np.ndarray]]:
+    async def get_ping_data(self) -> Tuple[Optional[float], Optional[np.ndarray]]:
         """
         Wait for and process a single ping data message.
-
-        Args:
-            transmit_duration: Duration of the sonar ping in microseconds
-            sample_period: Time between samples in 25ns increments
-            transmit_frequency: Frequency of the transmitted pulse in Hz
 
         Returns:
             Tuple of (angle, data_array) or (None, None) if no message received
         """
         m = self.myPing360.wait_message([definitions.PING360_DEVICE_DATA])
         if m:
-            angle = m.angle * (180 / 200)  # Convert from gradians to degrees
-            data = np.frombuffer(m.data, dtype=np.uint8)
+            # Process and extract the data
+            data_dict = {
+                "mode": m.mode,
+                "gain_setting": m.gain_setting,
+                # Convert from gradians to degrees
+                "angle": m.angle * (180 / 200),
+                "transmit_duration": m.transmit_duration,
+                "sample_period": m.sample_period,
+                "transmit_frequency": m.transmit_frequency,
+                "number_of_samples": m.number_of_samples,
+                "data": np.frombuffer(m.data, dtype=np.uint8),
+            }
 
-            return angle, data
+            return data_dict['angle'], np.array(data_dict['data'])
 
         return None, None
 
-    async def read_recording(self, filename: str, refresh_interval: int = 15):
+    async def read_recording(self, filename: str):
         """
         Read sonar data from an HDF5 file and process it.
 
         Args:
             filename: Path to the HDF5 file containing sonar data
-            refresh_interval: Time in seconds between processing cycles
         """
         logger.info(f"Reading sonar data from {filename}")
 
         if not os.path.exists(filename):
             logger.error(f"File {filename} does not exist")
-            return
+            return None
 
         try:
             with h5py.File(filename, 'r') as file:
+                # List all saved scans
                 datasets = list(file.keys())
-                if not datasets:
-                    logger.warning("No scans found in file")
-                    return
-
                 logger.info(f"Found {len(datasets)} scans")
 
                 while True:  # Loop through the datasets repeatedly
                     for dataset in datasets:
-                        try:
+                        if datasets:
                             # Load and process data
-                            raw_data = file[dataset][:]
                             self.current_scan, self.start_index = self.clean(
-                                raw_data)
+                                file[dataset][:])
                             self.current_angles = self.angles
 
-                            # Extract features
-                            self.costmap, self.X, self.Y = await self.feature_extractor.extract_features(
-                                self.current_scan, self.angles, self.resolution)
+                            logger.debug(
+                                f"Processed scan: min={np.min(self.current_scan)}, max={np.max(self.current_scan)}")
+
+                            # Extract features if needed
+                            # self.costmap, self.X, self.Y = await self.feature_extractor.extract_features(
+                            #     self.current_scan, self.angles, self.resolution)
 
                             # Trigger callback if registered
                             if self._on_scan_updated_callback:
                                 self._on_scan_updated_callback(
                                     self.current_scan)
 
-                            logger.debug(
-                                f"Processed scan: min={np.min(self.current_scan)}, max={np.max(self.current_scan)}")
+                        else:
+                            logger.warning("No scans found in file")
 
-                            # Wait before processing the next dataset
-                            await asyncio.sleep(refresh_interval)
-
-                        except Exception as e:
-                            logger.error(
-                                f"Error processing dataset {dataset}: {e}")
-                            await asyncio.sleep(1)
-
+                        # Wait before processing the next dataset
+                        await asyncio.sleep(15)
         except Exception as e:
             logger.error(f"Error opening or reading file {filename}: {e}")
 
@@ -219,7 +215,7 @@ class PingManager:
         """Get the current costmap and coordinate grids."""
         return self.costmap, self.X, self.Y
 
-    def get_current_angles(self) -> list:
+    def get_current_angles(self) -> List[float]:
         """Get the angles corresponding to the current scan."""
         return self.current_angles
 
@@ -242,16 +238,12 @@ class PingManager:
             Tuple of (cleaned_data, start_index)
         """
         # Find index corresponding to minimum operating range (0.75m)
-        min_range_index = int(0.75 / self.resolution)
+        index = 0
+        while index * self.resolution < 0.75:
+            data[index] = 0
+            index += 1
 
-        # Create a copy to avoid modifying the original
-        data_copy = data.copy()
-
-        # Zero out data below the minimum range
-        if min_range_index > 0:
-            data_copy[:min_range_index] = 0
-
-        return data_copy[min_range_index:], min_range_index
+        return data[index:], index
 
     async def sonar_scanning(self, start: int = 0, end: int = 399, threshold: int = 80):
         """
@@ -265,10 +257,10 @@ class PingManager:
         data_mat = []
         angles = []
         self.start_index = 0
-        step = start
 
         logger.info(f"Starting continuous scanning from {start} to {end}")
 
+        step = start
         while True:
             try:
                 # Send scan command
@@ -304,10 +296,6 @@ class PingManager:
                     # Call the callback if registered
                     if self._on_scan_updated_callback:
                         self._on_scan_updated_callback(self.current_scan)
-
-                    # Process features if needed
-                    self.costmap, self.X, self.Y = await self.feature_extractor.extract_features(
-                        self.current_scan, angles, self.resolution)
 
                     # Clear data for next scan
                     data_mat = []
